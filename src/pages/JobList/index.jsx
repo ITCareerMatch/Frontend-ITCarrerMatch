@@ -10,7 +10,7 @@ export default function JobList() {
   const navigate = useNavigate();
   
   // Simulasi state login (ubah ke false untuk melihat tampilan sebelum login)
-  const [isLoggedIn] = useState(true);
+  const [isLoggedIn] = useState(false);
 
   // Data Dummy Lowongan Pekerjaan
   const jobs = [
