@@ -68,7 +68,7 @@ export default function LandingPage() {
         {/* Hero Image Right Side */}
         <div className="lg:w-1/2 relative z-0">
           <div className="bg-gray-100 rounded-2xl overflow-hidden shadow-2xl relative aspect-[4/2,7] border border-gray-200">
-             <img src="/src/assets/images/hero-image.png" alt="CV and Laptop" className="w-full h-full object-cover" />
+             <img src="/images/hero-image.png" alt="CV and Laptop" className="w-full h-full object-cover" />
           </div>
           
           {/* Floating Badge 1 (Score) */}
@@ -279,12 +279,12 @@ export default function LandingPage() {
       <section className="py-10 border-t border-gray-100 text-center">
         <p className="text-xs text-gray-400 mb-6 uppercase tracking-wider font-semibold">Pengguna kami telah berhasil diterima di perusahaan-perusahaan ternama</p>
         <div className="flex flex-wrap justify-center gap-5 md:gap-5">
-          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/src/assets/images/dbs-logo.png" alt="DBS" className="h-10" /></div>
-          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/src/assets/images/gojek-logo.png" alt="Gojek" className="h-10" /></div>
-          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/src/assets/images/shopee-logo.png" alt="Shopee" className="h-13" /></div>
-          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/src/assets/images/dicoding-logo.png" alt="Dicoding" className="h-9" /></div>
-          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/src/assets/images/bumn-logo.png" alt="BUMN" className="h-8" /></div>
-          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/src/assets/images/google-logo.png" alt="Google" className="h-10" /></div>
+          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/images/dbs-logo.png" alt="DBS" className="h-10" /></div>
+          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/images/gojek-logo.png" alt="Gojek" className="h-10" /></div>
+          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/images/shopee-logo.png" alt="Shopee" className="h-13" /></div>
+          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/images/dicoding-logo.png" alt="Dicoding" className="h-9" /></div>
+          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/images/bumn-logo.png" alt="BUMN" className="h-8" /></div>
+          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/images/google-logo.png" alt="Google" className="h-10" /></div>
         </div>
       </section>
 
