@@ -13,4 +13,14 @@ The React Compiler is not enabled on this template because of its impact on dev 
 
 ## Expanding the ESLint configuration
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+**Capstone Project - Team CC26-PSU088**
+
+AI CV Reviewer adalah sebuah platform berbasis web yang memanfaatkan kecerdasan buatan (AI) untuk membantu para pencari kerja mengoptimalkan Curriculum Vitae (CV) mereka. Platform ini menganalisis CV, memberikan skor terukur, mendeteksi *skill gap*, dan memberikan rekomendasi lowongan pekerjaan yang paling relevan secara otomatis.
+
+- **Library Utama:** [React.js](https://react.dev/) (v18+)
+- **Build Tool:** [Vite](https://vitejs.dev/) - Menggunakan plugin `@vitejs/plugin-react` untuk HMR yang super cepat.
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/) - Untuk desain UI yang responsif, modern, dan konsisten.
+- **Routing:** [React Router DOM](https://reactrouter.com/) - Implementasi navigasi *Single Page Application* (SPA) dan *Protected Routes*.
+- **Ikonografi:** [React Icons](https://react-icons.github.io/react-icons/) (Fi & Bs).
+
+---
