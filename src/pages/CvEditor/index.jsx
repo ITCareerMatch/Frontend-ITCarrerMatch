@@ -3,7 +3,7 @@ import {
   FiMail, FiPhone, FiBriefcase, FiXCircle, 
   FiCheckCircle, FiTrash2, FiPlus, FiChevronDown, 
   FiChevronUp, FiBell, FiTrendingUp, FiChevronRight,
-  FiDownload // <-- Import ikon Download
+  FiDownload
 } from 'react-icons/fi';
 import { BsStars, BsLightbulbFill, BsFileText, BsPersonCircle } from 'react-icons/bs';
 
@@ -74,7 +74,6 @@ export default function CvEditor() {
   };
 
   return (
-    // Tambahkan print:bg-white dan print:h-auto agar saat diprint background bersih
     <div className="min-h-screen bg-gray-100 flex flex-col print:bg-white print:h-auto">
 
       {/* --- MAIN CONTENT (Layout Split Editor) --- */}
@@ -129,7 +128,7 @@ export default function CvEditor() {
                       </div>
                     </div>
                   ))}
-                  <button className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-blue-200 text-blue-600 font-bold py-3.5 rounded-xl hover:bg-blue-50 transition-colors text-sm cursor-pointer">
+                  <button className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-blue-200 text-blue-600 font-bold py-3.5 rounded-xl hover:bg-blue-50 transition-colors text-sm">
                     <FiPlus /> Tambah Pengalaman Baru
                   </button>
                 </div>
@@ -138,9 +137,12 @@ export default function CvEditor() {
           </div>
 
           {/* Sticky Bottom Bar */}
-          <div className="mt-auto pt-4 border-t border-gray-100 bg-white bottom-0 flex justify-between items-center gap-4 p-6 print:hidden">
-             <button className="w-1/1 bg-gray-100 text-gray-700 font-bold py-3.5 rounded-xl hover:bg-gray-200 transition-colors flex justify-center items-center gap-2 cursor-pointer">
+          <div className="mt-auto pt-4 border-t border-gray-100 bg-white sticky bottom-0 flex gap-3">
+             <button className="w-1/2 bg-gray-100 text-gray-700 font-bold py-3.5 rounded-xl hover:bg-gray-200 transition-colors flex justify-center items-center gap-2">
                Simpan Draft
+             </button>
+             <button className="w-1/2 bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-colors flex justify-center items-center gap-2">
+               <BsStars /> Scan Ulang AI
              </button>
           </div>
         </aside>
@@ -148,16 +150,15 @@ export default function CvEditor() {
         {/* ========================================== */}
         {/* KOLOM KANAN: PREVIEW & AI INSIGHTS */}
         {/* ========================================== */}
-        {/* Tambahkan modifier print agar memenuhi layar saat PDF */}
         <section className="w-full md:w-1/2 flex flex-col p-6 overflow-y-auto bg-gray-50/50 print:p-0 print:w-full print:bg-white print:overflow-visible">
           
           {/* Header Tabs & Tombol Download (Sembunyikan saat print) */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 print:hidden">
             <div className="flex bg-white p-1.5 rounded-xl border border-gray-200 shadow-sm w-full sm:w-auto">
-              <button onClick={() => setActiveTab('preview')} className={`px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'preview' ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100' : 'text-gray-500 hover:text-gray-700 cursor-pointer'}`}>
+              <button onClick={() => setActiveTab('preview')} className={`px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'preview' ? 'bg-blue-50 text-blue-700 shadow-sm border border-blue-100' : 'text-gray-500 hover:text-gray-700'}`}>
                 <BsFileText className="inline mr-2" /> Live Preview
               </button>
-              <button onClick={() => setActiveTab('insights')} className={`px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'insights' ? 'bg-yellow-50 text-yellow-700 shadow-sm border border-yellow-200' : 'text-gray-500 hover:text-gray-700 cursor-pointer'}`}>
+              <button onClick={() => setActiveTab('insights')} className={`px-4 py-2.5 rounded-lg text-sm font-semibold transition-all ${activeTab === 'insights' ? 'bg-yellow-50 text-yellow-700 shadow-sm border border-yellow-200' : 'text-gray-500 hover:text-gray-700'}`}>
                 <BsLightbulbFill className={`inline mr-2 ${activeTab === 'insights' ? 'text-yellow-500' : ''}`} /> AI Insights (3)
               </button>
             </div>
@@ -166,71 +167,68 @@ export default function CvEditor() {
             {activeTab === 'preview' && (
               <button 
                 onClick={handleDownloadPDF} 
-                className="w-full sm:w-auto bg-blue-600 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full sm:w-auto bg-blue-600 text-white font-bold px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
               >
-                <FiDownload size={18} />Unduh PDF
+                <FiDownload size={18} /> Unduh PDF
               </button>
             )}
           </div>
 
           {activeTab === 'preview' ? (
-             /* --- LIVE PREVIEW CV (Kertas A4) --- */
-             /* Hilangkan border, shadow, max-width saat print */
-             <div className="bg-white rounded-lg shadow-md border border-gray-200 aspect-[1/1.4] w-full max-w-[600px] mx-auto relative overflow-hidden flex print:max-w-none print:shadow-none print:border-none print:aspect-auto print:h-screen print:m-0">
+             /* --- LIVE PREVIEW CV (FORMAT ATS FRIENDLY) --- */
+             <div className="bg-white rounded-lg shadow-md border border-gray-200 aspect-[1/1.4] w-full max-w-[700px] mx-auto overflow-hidden flex flex-col p-8 sm:p-12 text-gray-900 print:max-w-none print:shadow-none print:border-none print:aspect-auto print:h-screen print:m-0 print:p-4">
                 
-                {/* Sidebar CV (Kiri) */}
-                <div 
-                  className="w-1/3 bg-[#2A3B4C] text-white p-6 space-y-6" 
-                  style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }} // Memaksa warna background muncul saat print
-                >
-                  <div className="w-20 h-20 rounded-full bg-white/20 mx-auto flex items-center justify-center font-bold text-2xl tracking-widest text-white shadow-inner">
-                    {cvData.profile.fullName.substring(0, 2).toUpperCase()}
-                  </div>
-                  <div className="space-y-3 text-[10px] break-words">
-                    <p className="flex items-center gap-2 opacity-80"><FiMail className="shrink-0"/> {cvData.profile.email}</p>
-                    <p className="flex items-center gap-2 opacity-80"><FiPhone className="shrink-0"/> {cvData.profile.phone}</p>
-                  </div>
-                  <div className="pt-4 border-t border-white/20">
-                    <h4 className="font-bold mb-3 text-xs tracking-widest text-blue-200">KEAHLIAN</h4>
-                    <div className="flex flex-wrap gap-1.5">
-                      {cvData.skills.map((s, index) => (
-                        <span key={index} className="bg-white/10 border border-white/20 px-2 py-1 rounded text-[9px] font-medium">{s}</span>
-                      ))}
-                    </div>
+                {/* Header: Nama dan Kontak */}
+                <div className="text-center border-b-2 border-gray-800 pb-4 mb-5">
+                  <h1 className="font-bold text-3xl sm:text-4xl uppercase tracking-wider mb-2 text-gray-900">{cvData.profile.fullName}</h1>
+                  <p className="text-sm font-medium text-gray-700 flex justify-center items-center flex-wrap gap-2">
+                    <span>{cvData.profile.phone}</span>
+                    <span className="text-gray-400">|</span>
+                    <span>{cvData.profile.email}</span>
+                  </p>
+                </div>
+
+                {/* Ringkasan Profesional */}
+                <div className="mb-5">
+                  <h2 className="font-bold text-sm uppercase tracking-widest border-b border-gray-300 mb-3 pb-1 text-gray-900">Professional Summary</h2>
+                  <p className="text-sm leading-relaxed text-gray-800 text-justify">
+                    {cvData.profile.summary}
+                  </p>
+                </div>
+
+                {/* Pengalaman Kerja */}
+                <div className="mb-5">
+                  <h2 className="font-bold text-sm uppercase tracking-widest border-b border-gray-300 mb-3 pb-1 text-gray-900">Work Experience</h2>
+                  <div className="space-y-4">
+                    {cvData.experience.map(exp => (
+                      <div key={exp.id}>
+                        <div className="flex justify-between items-baseline mb-1">
+                          <h3 className="font-bold text-sm text-gray-900">{exp.title}</h3>
+                          <span className="text-sm font-bold text-gray-700">{exp.dates}</span>
+                        </div>
+                        <p className="text-sm font-semibold italic text-gray-800 mb-1.5">{exp.company}</p>
+                        
+                        <ul className="list-disc list-outside ml-4 text-sm leading-relaxed text-gray-800 text-justify">
+                          <li>{exp.achievements}</li>
+                        </ul>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                {/* Konten Utama CV (Kanan) */}
-                <div className="w-2/3 p-8 space-y-6 text-gray-800">
-                  <div className="border-b border-gray-200 pb-4">
-                    <h1 className="font-black text-2xl uppercase text-gray-900 leading-none mb-1">{cvData.profile.fullName}</h1>
-                    <p className="text-blue-600 font-bold text-sm tracking-widest uppercase">Software Engineer</p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-bold mb-2 text-xs text-gray-400 tracking-widest uppercase">Profil</h4>
-                    <p className="text-xs leading-relaxed text-gray-600 text-justify">{cvData.profile.summary}</p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-bold mb-3 text-xs text-gray-400 tracking-widest uppercase">Pengalaman</h4>
-                    <div className="space-y-4">
-                      {cvData.experience.map(exp => (
-                        <div key={exp.id} className="relative pl-3 border-l-2 border-gray-200">
-                          <div className="absolute w-2 h-2 bg-blue-500 rounded-full -left-[5px] top-1" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}></div>
-                          <p className="font-bold text-gray-900 text-sm leading-tight">{exp.title}</p>
-                          <p className="text-blue-600 text-[10px] font-bold mb-1">{exp.company} <span className="text-gray-400 font-normal">| {exp.dates}</span></p>
-                          <p className="text-xs text-gray-600 leading-relaxed text-justify">{exp.achievements}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                {/* Keahlian (Skills) */}
+                <div className="mb-5">
+                  <h2 className="font-bold text-sm uppercase tracking-widest border-b border-gray-300 mb-3 pb-1 text-gray-900">Skills</h2>
+                  <p className="text-sm leading-relaxed text-gray-800">
+                    <span className="font-bold">Core Competencies: </span> 
+                    {cvData.skills.join(', ')}
+                  </p>
                 </div>
+
              </div>
           ) : (
             /* --- AI INSIGHTS TAB (Sembunyikan saat print) --- */
             <div className="space-y-6 max-w-[600px] mx-auto w-full pb-10 print:hidden">
-              
               <div className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm text-center relative overflow-hidden">
                 <div className="w-40 h-40 mx-auto rounded-full border-[10px] border-gray-50 flex flex-col items-center justify-center mb-6 relative">
                     <div className="absolute inset-[-10px] rounded-full border-[10px] border-green-500" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 68%, 0 68%)' }}></div>
@@ -244,29 +242,21 @@ export default function CvEditor() {
 
               <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm space-y-4">
                  <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2"><BsLightbulbFill className="text-yellow-500"/> Saran Perbaikan AI (3)</h4>
-                 
                  <div className="border border-red-100 rounded-2xl overflow-hidden shadow-sm">
                    <div className="p-4 bg-red-50 text-sm font-bold text-red-700 flex justify-between items-center border-b border-red-100">
-                     <span>Pengalaman Kerja (Penting)</span> 
-                     <FiChevronDown/>
+                     <span>Pengalaman Kerja (Penting)</span> <FiChevronDown/>
                    </div>
                    <div className="p-5 space-y-4 bg-white">
-                      <p className="text-sm text-gray-600 mb-2">AI mendeteksi kalimat Anda terlalu pasif. Gunakan struktur kalimat berorientasi hasil.</p>
+                      <p className="text-sm text-gray-600 mb-2">AI mendeteksi kalimat Anda terlalu pasif.</p>
                       <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
                         <p className="flex gap-2 text-gray-400 line-through text-xs italic"><FiXCircle className="text-red-400 shrink-0 mt-0.5"/> "Bertanggung jawab atas pengembangan backend perusahaan..."</p>
                       </div>
                       <div className="p-3 bg-green-50 rounded-xl border border-green-200">
-                        <p className="flex gap-2 text-green-800 text-xs font-bold"><FiCheckCircle className="text-green-500 shrink-0 mt-0.5"/> "Merancang dan mengimplementasikan arsitektur backend yang melayani 100k+ request/detik..."</p>
+                        <p className="flex gap-2 text-green-800 text-xs font-bold"><FiCheckCircle className="text-green-500 shrink-0 mt-0.5"/> "Merancang dan mengimplementasikan arsitektur backend..."</p>
                       </div>
-                      <button className="w-full bg-blue-50 text-blue-600 font-bold text-xs py-2 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors">Terapkan Otomatis</button>
                    </div>
                  </div>
-
-                 <div className="border border-gray-200 rounded-2xl p-4 bg-gray-50 text-sm font-bold flex justify-between items-center cursor-pointer hover:bg-gray-100 transition-colors">
-                   <span className="text-gray-700">Ringkasan Profesional</span> <FiChevronRight className="text-gray-400"/>
-                 </div>
               </div>
-
             </div>
           )}
         </section>

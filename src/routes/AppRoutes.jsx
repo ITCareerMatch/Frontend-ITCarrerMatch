@@ -10,6 +10,9 @@ const Dashboard = lazy(() => import('../pages/Dashboard'));
 const JobDetail = lazy(() => import('../pages/JobDetail'));
 const CvEditor = lazy(() => import('../pages/CvEditor'));
 const JobList = lazy(() => import('../pages/JobList'));
+const NewAnalysis = lazy(() => import('../pages/NewAnalysis'));
+const AnalysisResult = lazy(() => import('../pages/AnalysisResult'));
+const DashboardJobs = lazy(() => import('../pages/DashboardJobs'));
 
 // 2. Komponen Loading (Fallback)
 const PageLoader = () => (
@@ -63,6 +66,30 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'analisis-baru',
+        element: (
+          <ProtectedRoute>
+            <NewAnalysis />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'hasil-analisis',
+        element: (
+          <ProtectedRoute>
+            <AnalysisResult />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'daftar-lowongan',
+        element: (
+          <ProtectedRoute>
+            <DashboardJobs />
           </ProtectedRoute>
         ),
       },

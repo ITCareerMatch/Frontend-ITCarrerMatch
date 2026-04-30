@@ -16,8 +16,8 @@ export default function DashLayout() {
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: <FiHome size={20} /> },
     { path: '/editor', label: 'CV Editor', icon: <FiFileText size={20} /> },
-    { path: '/history', label: 'Analisis Baru', icon: <FiPlusCircle size={20} /> },
-    { path: '/chatbot', label: 'Daftar Lowongan', icon: <FiBriefcase size={20} /> },
+    { path: '/analisis-baru', label: 'Analisis Baru', icon: <FiPlusCircle size={20} /> },
+    { path: '/daftar-lowongan', label: 'Daftar Lowongan', icon: <FiBriefcase size={20} /> },
   ];
 
   const handleLogout = () => {
@@ -47,7 +47,7 @@ export default function DashLayout() {
       `}>
         {/* Header Sidebar (Logo) */}
         <div className="h-16 flex items-center px-6 border-b border-gray-100 shrink-0 justify-between">
-          <div className="flex items-center gap-2 font-bold text-lg text-gray-900 cursor-pointer" onClick={() => navigate('/dashboard')}>
+          <div className="flex items-center gap-2 font-bold text-lg text-gray-900 cursor-pointer" onClick={() => navigate('/#')}>
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white"><BsStars size={16} /></div>
             ITCareerMatch
           </div>
