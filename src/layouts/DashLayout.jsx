@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { 
   FiHome, FiFileText, FiBriefcase, FiMessageSquare, 
   FiSettings, FiLogOut, FiMenu, FiX, FiBell, FiUser,
@@ -26,7 +26,7 @@ export default function DashLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex font-sans text-gray-800">
+    <div className="h-screen bg-gray-50 flex font-sans text-gray-800 overflow-hidden">
       
       {/* --- SIDEBAR (Desktop) & OVERLAY (Mobile) --- */}
       {/* Overlay hitam transparan saat sidebar terbuka di HP */}
@@ -68,7 +68,7 @@ export default function DashLayout() {
                   navigate(item.path);
                   setIsSidebarOpen(false);
                 }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors cursor-pointer ${
                   isActive 
                     ? 'bg-blue-50 text-blue-700' 
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -82,13 +82,35 @@ export default function DashLayout() {
         </nav>
 
         {/* Footer Sidebar (User & Settings) */}
-        <div className="p-4 border-t border-gray-100 shrink-0">
-          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 font-medium transition-colors mb-1">
-            <div className="text-gray-400"><FiSettings size={20} /></div> Pengaturan
-          </button>
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50 font-medium transition-colors">
-            <div className="text-red-500"><FiLogOut size={20} /></div> Keluar
-          </button>
+        <div className="p-4 border-t border-gray-100 space-y-1.5 bg-white shrink-0">
+           
+           {/* Tombol Pengaturan */}
+           <NavLink
+              to="/pengaturan"
+              onClick={() => setIsSidebarOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                  isActive 
+                    ? 'bg-blue-50 text-blue-700' 
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`
+              }
+            >
+              <FiSettings size={20} className="shrink-0" />
+              Pengaturan
+            </NavLink>
+
+            {/* Tombol Keluar */}
+            <button
+              onClick={() => {
+                handleLogout();
+                setIsSidebarOpen(false);
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+            >
+              <FiLogOut size={20} className="shrink-0" />
+              Keluar
+            </button>
         </div>
       </aside>
 
@@ -112,7 +134,7 @@ export default function DashLayout() {
 
           <div className="flex items-center gap-3 sm:gap-5">
             {/* Notifikasi */}
-            <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
+            <button className="relative p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors cursor-pointer">
               <FiBell size={20} />
               <span className="absolute top-1 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
             </button>
@@ -120,7 +142,7 @@ export default function DashLayout() {
             <div className="h-6 w-px bg-gray-200"></div>
             
             {/* Profil User */}
-            <button className="flex items-center gap-3 hover:bg-gray-50 p-1.5 pr-3 rounded-full border border-transparent hover:border-gray-200 transition-all">
+            <button className="flex items-center gap-3 hover:bg-gray-50 p-1.5 pr-3 rounded-full border border-transparent hover:border-gray-200 transition-all cursor-pointer">
               <div className="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold">
                 BS
               </div>

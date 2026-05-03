@@ -13,6 +13,7 @@ const JobList = lazy(() => import('../pages/JobList'));
 const NewAnalysis = lazy(() => import('../pages/NewAnalysis'));
 const AnalysisResult = lazy(() => import('../pages/AnalysisResult'));
 const DashboardJobs = lazy(() => import('../pages/DashboardJobs'));
+const Settings = lazy(() => import('../pages/Settings'));
 
 // 2. Komponen Loading (Fallback)
 const PageLoader = () => (
@@ -106,6 +107,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <CvEditor />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'pengaturan',
+        element: (
+          <ProtectedRoute>
+            <Settings />
           </ProtectedRoute>
         ),
       },
