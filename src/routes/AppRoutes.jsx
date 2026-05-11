@@ -4,7 +4,8 @@ import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 // 1. Lazy Loading Komponen (Code Splitting)
 const LandingPage = lazy(() => import('../pages/LandingPage'));
 const PreLoginFlow = lazy(() => import('../pages/PreLoginFlow'));
-const AuthPage = lazy(() => import('../pages/Auth'));
+const Login = lazy(() => import('../pages/Auth/Login'));
+const Register = lazy(() => import('../pages/Auth/Register'));
 const DashLayout = lazy(() => import('../layouts/DashLayout'));
 const Dashboard = lazy(() => import('../pages/Dashboard'));
 const JobDetail = lazy(() => import('../pages/JobDetail'));
@@ -51,11 +52,11 @@ const router = createBrowserRouter([
   },
   {
     path: '/login',
-    element: <AuthPage />,
+    element: <Login />,
   },
   {
     path: '/register',
-    element: <AuthPage />,
+    element: <Register />,
   },
 
   // --- RUTE PRIVAT (Wajib Login) ---
