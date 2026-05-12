@@ -4,17 +4,40 @@ import { FiMail, FiLock, FiCheckCircle, FiZap, FiShield, FiUser } from 'react-ic
 import { BsStars } from 'react-icons/bs';
 import { FcGoogle } from 'react-icons/fc';
 import { FaStar } from 'react-icons/fa';
+import { supabase } from '../../lib/supabase';
 
 export default function Register() {
   const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [gender, setGender] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Register dengan:", { name, email, password });
-    navigate('/dashboard');
+    try {
+      const { data, error } = supabase.auth.signUp({
+        email,
+        password,
+        gender,
+        options: {
+          data: { full_name: name } // Simpan nama di metadata supabase
+        }
+      });
+
+      if (error) throw error;
+
+      // Jika Supabase di-setting untuk auto-login setelah register
+      if (data.session) {
+        localStorage.setItem('access_token', data.session.access_token);
+        navigate('/dashboard');
+      } else {
+        alert("Registrasi berhasil! Silakan cek email Anda untuk konfirmasi.");
+        navigate('/login');
+      }
+    } catch (error) {
+      alert("Gagal registrasi: " + error.message);
+    }
   };
 
   return (
@@ -162,7 +185,7 @@ export default function Register() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Gender</label>
               <select
-                required
+                required onChange={(e) => setGender(e.target.value)}
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-4 pr-10 text-sm text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
               >
                 <option disabled value="">Pilih Gender</option>

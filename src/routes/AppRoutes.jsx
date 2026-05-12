@@ -23,10 +23,10 @@ const PageLoader = () => (
   </div>
 );
 
-// 3. Sistem Protected Route (Standar Keamanan Sederhana)
+// 3. Sistem Protected Route (Mengecek Token dari Local Storage)
 const ProtectedRoute = ({ children }) => {
-  // TODO: Nanti ini diganti dengan pengecekan token/auth dari Context atau API yang sebenarnya
-  const isAuthenticated = true; // Ubah ke 'true' untuk mencoba masuk ke dashboard
+  // Mengecek apakah ada access_token yang tersimpan dari hasil login Supabase
+  const isAuthenticated = !!localStorage.getItem('access_token'); 
 
   if (!isAuthenticated) {
     // Jika belum login, lempar kembali ke halaman login
@@ -96,7 +96,8 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: 'detail',
+        // UPDATE: Menambahkan parameter dinamis :id pada rute detail
+        path: 'detail/:id',
         element: (
           <ProtectedRoute>
             <JobDetail />

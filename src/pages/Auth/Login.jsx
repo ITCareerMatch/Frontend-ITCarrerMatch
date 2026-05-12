@@ -4,6 +4,7 @@ import { FiMail, FiLock, FiCheckCircle, FiZap, FiShield } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
 import { FcGoogle } from 'react-icons/fc';
 import { FaStar } from 'react-icons/fa';
+import { supabase } from '../../lib/supabase';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -12,9 +13,23 @@ export default function Login() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Login dengan:", { email, password });
+  try {
+    const { data, error } = supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) throw error;
+
+    // Simpan access token setelah login berhasil
+    localStorage.setItem('access_token', data.session.access_token);
+    console.log("Login berhasil, token disimpan.");
+    
     navigate('/dashboard');
-  };
+  } catch (error) {
+    alert("Gagal login: " + error.message);
+  }
+};
 
   return (
     <div className="min-h-screen flex font-sans bg-white overflow-hidden">
