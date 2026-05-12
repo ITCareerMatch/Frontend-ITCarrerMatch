@@ -13,19 +13,19 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [gender, setGender] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const { data, error } = supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        gender,
         options: {
-          data: { full_name: name } // Simpan nama di metadata supabase
+          data: { full_name: name, gender } // Simpan nama dan gender di metadata supabase
         }
       });
 
       if (error) throw error;
+      if (!data) throw new Error('Respons Supabase tidak valid.');
 
       // Jika Supabase di-setting untuk auto-login setelah register
       if (data.session) {

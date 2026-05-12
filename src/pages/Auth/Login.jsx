@@ -11,25 +11,26 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-  try {
-    const { data, error } = supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      if (!data || !data.session) throw new Error('Login gagal, sesi tidak ditemukan.');
 
-    if (error) throw error;
-
-    // Simpan access token setelah login berhasil
-    localStorage.setItem('access_token', data.session.access_token);
-    console.log("Login berhasil, token disimpan.");
-    
-    navigate('/dashboard');
-  } catch (error) {
-    alert("Gagal login: " + error.message);
-  }
-};
+      // Simpan access token setelah login berhasil
+      localStorage.setItem('access_token', data.session.access_token);
+      console.log("Login berhasil, token disimpan.");
+      
+      navigate('/dashboard');
+    } catch (error) {
+      alert("Gagal login: " + error.message);
+    }
+  };
 
   return (
     <div className="min-h-screen flex font-sans bg-white overflow-hidden">
