@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import useAuth from '../context/useAuth';
 
 // 1. Lazy Loading Komponen (Code Splitting)
 const LandingPage = lazy(() => import('../pages/LandingPage'));
@@ -23,15 +24,23 @@ const PageLoader = () => (
   </div>
 );
 
-// 3. Sistem Protected Route (Mengecek Token dari Local Storage)
+// 3. Sistem Protected Route (Mengecek session Supabase dari Context)
 const ProtectedRoute = ({ children }) => {
-  // Mengecek apakah ada access_token yang tersimpan dari hasil login Supabase
-  const isAuthenticated = !!localStorage.getItem('access_token'); 
+  const { session, loading } = useAuth();
+  const hasToken = !!localStorage.getItem('access_token');
 
-  if (!isAuthenticated) {
-    // Jika belum login, lempar kembali ke halaman login
-    return <Navigate to="/login" replace />;
-  }
+  if (loading && !hasToken) return <PageLoader />;
+  if (!session && !hasToken) return <Navigate to="/login" replace />;
+  return children;
+};
+
+// Jika user sudah login, redirect dari rute publik ke dashboard
+const PublicRoute = ({ children }) => {
+  const { session, loading } = useAuth();
+  const hasToken = !!localStorage.getItem('access_token');
+
+  if (loading && !hasToken) return <PageLoader />;
+  if (session || hasToken) return <Navigate to="/dashboard" replace />;
   return children;
 };
 

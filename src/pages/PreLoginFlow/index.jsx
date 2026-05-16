@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  FiUploadCloud, FiEdit2, FiFileText, FiCheckCircle, FiLock, 
+  FiUploadCloud, FiEdit2, FiFileText, FiCheckCircle, FiLock, FiArrowLeft,
   FiZap, FiShield, FiClock, FiMessageCircle, FiBriefcase, FiXCircle, FiTrendingUp
 } from 'react-icons/fi';
 import { BsStars, BsArrowRight, BsLightbulbFill } from 'react-icons/bs';
@@ -36,8 +36,15 @@ export default function PreLoginFlow() {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white"><BsStars size={18} /></div>
             ITCareerMatch
           </div>
-          <button onClick={() => navigate('/login')} className="text-gray-600 font-medium hover:text-blue-600 transition-colors">Masuk</button>
+          <button onClick={() => navigate('/login')} className="text-gray-600 font-medium hover:text-blue-600 transition-colors cursor-pointer">Masuk</button>
         </header>
+
+        <div className="max-w-6xl mx-auto py-6 px-6">
+          <button type="button" className="flex items-center gap-2 text-sm font-bold text-blue-600 cursor-pointer hover:text-blue-700" onClick={() => navigate('/')}>
+            <FiArrowLeft size={18} />
+              Kembali ke Beranda
+          </button>
+        </div>
 
         <main className="max-w-6xl mx-auto py-10 px-6">
           <div className="text-center mb-10">

@@ -1,12 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import useAuth from '../../context/useAuth';
 // Import Ikon dari react-icons
-import { FiCheckCircle, FiShield, FiZap, FiFileText, FiTarget, FiTrendingUp, FiClock, FiUploadCloud, FiSearch, FiBriefcase, FiMessageSquare, FiActivity, FiUsers } from 'react-icons/fi';
+import { FiCheckCircle, FiShield, FiZap, FiFileText, FiTarget, FiTrendingUp, FiClock, FiUploadCloud, FiSearch, FiBriefcase, FiMessageSquare, FiActivity, FiUsers, FiMenu, FiX } from 'react-icons/fi';
 import { BsArrowRight, BsStars, BsFillChatDotsFill } from 'react-icons/bs';
 import { FaStar } from 'react-icons/fa';
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { session } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isLoggedIn = !!session || !!localStorage.getItem('access_token');
 
   return (
     <div className="min-h-screen bg-white font-sans text-gray-800">
@@ -19,19 +23,107 @@ export default function LandingPage() {
           </div>
           ITCareerMatch
         </div>
+
         <nav className="hidden md:flex gap-8 text-sm font-medium text-gray-600">
           <a href="#cara-kerja" className="hover:text-blue-600 transition-colors">Cara Kerja</a>
           <a href="#fitur" className="hover:text-blue-600 transition-colors">Fitur AI</a>
           <a onClick={() => navigate('/lowongan')} className="hover:text-blue-600 transition-colors cursor-pointer">Daftar Lowongan</a>
-          <button onClick={() => navigate('/login')} className="hover:text-blue-600 transition-colors cursor-pointer">Masuk</button>
+          {!isLoggedIn && (
+            <button onClick={() => navigate('/login')} className="hover:text-blue-600 transition-colors cursor-pointer">Masuk</button>
+          )}
         </nav>
-        <button 
-          onClick={() => navigate('/cek-skor')}
-          className="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors cursor-pointer"
+
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen((prev) => !prev)}
+          className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+          aria-label="Toggle menu"
         >
-          Cek Skor CV
+          {mobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
         </button>
+
+        <div className="hidden md:flex items-center gap-4">
+          {isLoggedIn && (
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 border border-gray-100 transition-colors mr-2 cursor-pointer"
+            >
+              Dashboard
+            </button>
+          )}
+          <button 
+            onClick={() => navigate('/cek-skor')}
+            className="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors cursor-pointer"
+          >
+            Cek Skor CV
+          </button>
+        </div>
       </header>
+
+      <div className={`${mobileMenuOpen ? 'fixed' : 'hidden'} md:hidden inset-x-0 top-16 z-40 bg-white border-b border-gray-100 px-8 py-4 shadow-xl max-h-[calc(100vh-4rem)] overflow-y-auto`}> 
+        <div className="flex flex-col gap-4 text-sm font-medium text-gray-700 items-center bg-white py-4">
+          <a
+            href="#cara-kerja"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block hover:text-blue-600 transition-colors"
+          >
+            Cara Kerja
+          </a>
+          <a
+            href="#fitur"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block hover:text-blue-600 transition-colors"
+          >
+            Fitur AI
+          </a>
+          <button
+            type="button"
+            onClick={() => {
+              setMobileMenuOpen(false);
+              navigate('/lowongan');
+            }}
+            className="text-left hover:text-blue-600 transition-colors"
+          >
+            Daftar Lowongan
+          </button>
+
+          <div className="flex flex-col gap-3 pt-2 w-full">
+            {isLoggedIn ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate('/dashboard');
+                }}
+                className="w-full bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 border border-gray-100 transition-colors"
+              >
+                Dashboard
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate('/login');
+                }}
+                className="w-full text-center text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors border border-gray-100 bg-gray-50"
+              >
+                Masuk
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                navigate('/cek-skor');
+              }}
+              className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              Cek Skor CV
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* --- HERO SECTION --- */}
       <section className="pt-16 pb-12 px-8 md:px-16 lg:flex items-center justify-between gap-12 max-w-7xl mx-auto">
@@ -139,7 +231,7 @@ export default function LandingPage() {
           {/* Garis background Desktop */}
           <div className="hidden md:block absolute top-1/2 left-10 right-10 h-[1px] bg-gray-200 -z-10"></div>
           
-          <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-left relative z-10">
+          <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-left relative z-10 hover:shadow-lg transition-shadow cursor-pointer">
             <div className="flex justify-between items-start mb-6">
               <div className="w-12 h-12 bg-blue-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
                 <FiUploadCloud size={24} />
@@ -151,7 +243,7 @@ export default function LandingPage() {
             <div className="inline-flex items-center gap-1 text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded"><FiCheckCircle/> Mendukung PDF & DOCX</div>
           </div>
 
-          <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-left relative z-10">
+          <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-left relative z-10 hover:shadow-lg transition-shadow cursor-pointer">
             <div className="flex justify-between items-start mb-6">
               <div className="w-12 h-12 bg-purple-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-purple-200">
                 <FiTarget size={24} />
@@ -163,7 +255,7 @@ export default function LandingPage() {
             <div className="inline-flex items-center gap-1 text-[10px] text-gray-400 bg-gray-50 px-2 py-1 rounded"><FiCheckCircle/> Lebih Simple | Tanpa Harus Upload CV</div>
           </div>
 
-          <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-left relative z-10">
+          <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm text-left relative z-10 hover:shadow-lg transition-shadow cursor-pointer">
             <div className="flex justify-between items-start mb-6">
               <div className="w-12 h-12 bg-orange-400 text-white rounded-xl flex items-center justify-center shadow-lg shadow-orange-200">
                 <FiActivity size={24} />
@@ -185,42 +277,42 @@ export default function LandingPage() {
           <p className="text-gray-500 mb-16 max-w-lg mx-auto text-sm">Teknologi AI terdepan untuk memaksimalkan peluang karir Anda.</p>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
-            <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-shadow cursor-pointer">
               <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mb-6"><FiSearch size={20}/></div>
               <h3 className="text-base font-bold text-gray-900 mb-2">Analisis CV Mendalam</h3>
               <p className="text-sm text-gray-500 leading-relaxed mb-4">Skill Match, Skill Gap, dan saran perbaikan kalimat berbasis AI agar CV lebih profesional dan relevan.</p>
               <div className="text-[10px] text-gray-400">Lebih detail dari ulasan manual</div>
             </div>
             
-            <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-shadow cursor-pointer">
               <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center mb-6"><FiBriefcase size={20}/></div>
               <h3 className="text-base font-bold text-gray-900 mb-2">Rekomendasi Lowongan</h3>
               <p className="text-sm text-gray-500 leading-relaxed mb-4">Temukan lowongan yang paling cocok dengan profil Anda, lengkap dengan skor kecocokan real-time.</p>
               <div className="text-[10px] text-gray-400">500+ lowongan tersedia</div>
             </div>
 
-            <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-shadow cursor-pointer">
               <div className="w-10 h-10 bg-yellow-100 text-yellow-600 rounded-lg flex items-center justify-center mb-6"><FiMessageSquare size={20}/></div>
               <h3 className="text-base font-bold text-gray-900 mb-2">Chatbot AI Assistant</h3>
               <p className="text-sm text-gray-500 leading-relaxed mb-4">Tanya apa saja — dari revisi kalimat profesional hingga tips wawancara. Tersedia kapan saja.</p>
               <div className="text-[10px] text-gray-400">Respons instan 24/7</div>
             </div>
 
-            <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-shadow cursor-pointer">
               <div className="w-10 h-10 bg-green-100 text-green-600 rounded-lg flex items-center justify-center mb-6"><FiTrendingUp size={20}/></div>
               <h3 className="text-base font-bold text-gray-900 mb-2">CV Score Tracking</h3>
               <p className="text-sm text-gray-500 leading-relaxed mb-4">Pantau peningkatan skor CV Anda setiap kali melakukan perbaikan. Lihat progresnya secara visual.</p>
               <div className="text-[10px] text-gray-400">Rata-rata +20 poin peningkatan</div>
             </div>
 
-            <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-shadow cursor-pointer">
               <div className="w-10 h-10 bg-cyan-100 text-cyan-600 rounded-lg flex items-center justify-center mb-6"><FiShield size={20}/></div>
               <h3 className="text-base font-bold text-gray-900 mb-2">Privasi Terjamin</h3>
               <p className="text-sm text-gray-500 leading-relaxed mb-4">Data CV Anda dienkripsi dan tidak pernah dibagikan ke pihak ketiga. Aman dan terlindungi.</p>
               <div className="text-[10px] text-gray-400">Enkripsi end-to-end</div>
             </div>
 
-            <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg transition-shadow cursor-pointer">
               <div className="w-10 h-10 bg-pink-100 text-pink-600 rounded-lg flex items-center justify-center mb-6"><FiUsers size={20}/></div>
               <h3 className="text-base font-bold text-gray-900 mb-2">Komunitas Karir</h3>
               <p className="text-sm text-gray-500 leading-relaxed mb-4">Bergabung dengan ribuan pencari kerja Indonesia. Berbagi tips, pengalaman, dan dukungan bersama.</p>
@@ -236,8 +328,8 @@ export default function LandingPage() {
         <h2 className="text-3xl font-bold text-gray-900 mb-4">Kata Mereka yang Sudah Berhasil</h2>
         <p className="text-gray-500 mb-16 text-sm">Ribuan pencari kerja Indonesia sudah merasakan manfaatnya.</p>
 
-        <div className="grid md:grid-cols-3 gap-6 text-left">
-          <div className="p-8 border border-gray-100 rounded-2xl shadow-sm bg-white">
+        <div className="grid md:grid-cols-3 gap-6 text-left ">
+          <div className="p-8 border border-gray-100 rounded-2xl shadow-sm bg-white hover:shadow-lg transition-shadow cursor-pointer">
             <div className="flex gap-1 text-yellow-400 mb-4"><FaStar/><FaStar/><FaStar/><FaStar/><FaStar/></div>
             <p className="text-gray-600 text-sm italic mb-6">"Skor CV saya naik dari 62 ke 91 setelah menerapkan semua saran AI. Langsung dapat interview di 3 perusahaan!"</p>
             <div className="flex items-center gap-3">
@@ -249,7 +341,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="p-8 border border-gray-100 rounded-2xl shadow-sm bg-white">
+          <div className="p-8 border border-gray-100 rounded-2xl shadow-sm bg-white hover:shadow-lg transition-shadow cursor-pointer">
             <div className="flex gap-1 text-yellow-400 mb-4"><FaStar/><FaStar/><FaStar/><FaStar/><FaStar/></div>
             <p className="text-gray-600 text-sm italic mb-6">"Fitur Skill Gap sangat membantu. Saya jadi tahu persis skill apa yang perlu dipelajari untuk posisi impian."</p>
             <div className="flex items-center gap-3">
@@ -261,7 +353,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="p-8 border border-gray-100 rounded-2xl shadow-sm bg-white">
+          <div className="p-8 border border-gray-100 rounded-2xl shadow-sm bg-white hover:shadow-lg transition-shadow cursor-pointer">
             <div className="flex gap-1 text-yellow-400 mb-4"><FaStar/><FaStar/><FaStar/><FaStar/><FaStar/></div>
             <p className="text-gray-600 text-sm italic mb-6">"Chatbot AI-nya seperti punya career coach pribadi. Dia bantu saya rewrite semua bullet points jadi lebih powerful."</p>
             <div className="flex items-center gap-3">
@@ -277,14 +369,14 @@ export default function LandingPage() {
 
       {/* --- TRUSTED COMPANIES --- */}
       <section className="py-10 border-t border-gray-100 text-center">
-        <p className="text-xs text-gray-400 mb-6 uppercase tracking-wider font-semibold">Pengguna kami telah berhasil diterima di perusahaan-perusahaan ternama</p>
-        <div className="flex flex-wrap justify-center gap-5 md:gap-5">
-          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/images/dbs-logo.png" alt="DBS" className="h-10" /></div>
-          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/images/gojek-logo.png" alt="Gojek" className="h-10" /></div>
-          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/images/shopee-logo.png" alt="Shopee" className="h-13" /></div>
-          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/images/dicoding-logo.png" alt="Dicoding" className="h-9" /></div>
-          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/images/bumn-logo.png" alt="BUMN" className="h-8" /></div>
-          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center"><img src="/images/google-logo.png" alt="Google" className="h-10" /></div>
+        <p className="text-xs text-gray-400 mb-6 uppercase tracking-wider font-semibold px-8 md:px-16">Pengguna kami telah berhasil diterima di perusahaan-perusahaan ternama</p>
+        <div className="flex flex-wrap justify-center gap-5 md:gap-5 px-8 md:px-16">
+          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center hover:shadow-lg transition-shadow cursor-pointer"><img src="/images/dbs-logo.png" alt="DBS" className="h-10" /></div>
+          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center hover:shadow-lg transition-shadow cursor-pointer"><img src="/images/gojek-logo.png" alt="Gojek" className="h-10" /></div>
+          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center hover:shadow-lg transition-shadow cursor-pointer"><img src="/images/shopee-logo.png" alt="Shopee" className="h-13" /></div>
+          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center hover:shadow-lg transition-shadow cursor-pointer"><img src="/images/dicoding-logo.png" alt="Dicoding" className="h-9" /></div>
+          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center hover:shadow-lg transition-shadow cursor-pointer"><img src="/images/bumn-logo.png" alt="BUMN" className="h-8" /></div>
+          <div className="border-t bg-gray-100 p-1 rounded-[15px] w-50 h-25 flex items-center justify-center hover:shadow-lg transition-shadow cursor-pointer"><img src="/images/google-logo.png" alt="Google" className="h-10" /></div>
         </div>
       </section>
 
@@ -302,7 +394,7 @@ export default function LandingPage() {
           </p>
           <button 
             onClick={() => navigate('/cek-skor')}
-            className="bg-white text-blue-700 px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors shadow-lg relative z-10 flex items-center justify-center gap-2 mx-auto cursor-pointer"
+            className="bg-white text-blue-700 px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-blue-50 hover:shadow-lg transition-colors shadow-lg relative z-10 flex items-center justify-center gap-2 mx-auto cursor-pointer"
           >
             Cek Skor CV Sekarang <BsArrowRight />
           </button>
@@ -339,15 +431,19 @@ export default function LandingPage() {
             </ul>
           </div>
           <div>
-            <h4 className="font-bold text-gray-900 mb-4 text-sm">Kontak</h4>
+            <h4 className="font-bold text-gray-900 mb-4 text-sm">Team - CC26-PSU088:</h4>
             <ul className="space-y-3 text-xs text-gray-500 font-medium">
-              <li>ITCareerMatch@dicoding.id</li>
-              <li>Jakarta, Indonesia</li>
+              <li className="hover:text-blue-600 cursor-pointer">CDCC284D6Y2328 - Chardinal Martin Butarbutar</li>
+              <li className="hover:text-blue-600 cursor-pointer">CDCC284D6X0604 - Nadhia Della Puspita Sari</li>
+              <li className="hover:text-blue-600 cursor-pointer">CFCC284D6X2831 - Mutiara Angelita Muhaeni</li>
+              <li className="hover:text-blue-600 cursor-pointer">CFCC614D6Y0867 - Ahmad Sefriadi</li>
+              <li className="hover:text-blue-600 cursor-pointer">CACC012D6Y0477 - Muhammad Arifbillah Kamil</li>
+              <li className="hover:text-blue-600 cursor-pointer">CACC715D6Y0952 - Ulil Noor Absor</li>
             </ul>
           </div>
         </div>
         <div className="text-center text-xs text-gray-400 border-t border-gray-100 pt-8 font-medium">
-          &copy; 2026 ITCareerMatch. All rights reserved.
+          &copy; 2026 ITCareerMatch. Capstone Team - CC26-PSU088.
         </div>
       </footer>
 

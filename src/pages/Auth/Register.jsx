@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiMail, FiLock, FiCheckCircle, FiZap, FiShield, FiUser } from 'react-icons/fi';
+import { FiMail, FiLock, FiCheckCircle, FiZap, FiShield, FiUser, FiArrowLeft } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
 import { FcGoogle } from 'react-icons/fc';
 import { FaStar } from 'react-icons/fa';
@@ -20,7 +20,7 @@ export default function Register() {
         email,
         password,
         options: {
-          data: { full_name: name, gender } // Simpan nama dan gender di metadata supabase
+          data: { full_name: name, gender }
         }
       });
 
@@ -30,9 +30,10 @@ export default function Register() {
       // Jika Supabase di-setting untuk auto-login setelah register
       if (data.session) {
         localStorage.setItem('access_token', data.session.access_token);
+        await supabase.auth.setSession(data.session);
         navigate('/dashboard');
       } else {
-        alert("Registrasi berhasil! Silakan cek email Anda untuk konfirmasi.");
+        alert("Registrasi berhasil! Silakan login.");
         navigate('/login');
       }
     } catch (error) {
@@ -116,10 +117,17 @@ export default function Register() {
 
       {/* --- PANEL KANAN (REVISI REGISTER) --- */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-slate-50 flex-col">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 mb-3">Buat Akun Gratis</h1>
-            <p className="text-slate-500">Buka analisis CV lengkap dalam 30 detik</p>
-          </div>
+        <div className="w-full max-w-md mb-8">
+          <button type="button" className="flex items-center gap-2 text-sm font-bold text-blue-600 cursor-pointer hover:text-blue-700" onClick={() => navigate('/')}>
+            <FiArrowLeft size={18} />
+              Kembali ke Beranda
+          </button>
+        </div>
+
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 mb-3">Buat Akun Gratis</h1>
+          <p className="text-slate-500">Buka analisis CV lengkap dalam 30 detik</p>
+        </div>
 
         <div className="w-full max-w-md bg-white rounded-[2rem] p-8 shadow-xl shadow-slate-200/60">
           <button type="button" className="w-full flex items-center justify-center gap-3 py-4 mb-6 border border-slate-200 rounded-2xl bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-all shadow-sm cursor-pointer">

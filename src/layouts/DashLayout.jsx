@@ -6,6 +6,7 @@ import {
   FiPlusCircle
 } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
+import { supabase } from '../lib/supabase';
 
 export default function DashLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -20,8 +21,10 @@ export default function DashLayout() {
     { path: '/daftar-lowongan', label: 'Daftar Lowongan', icon: <FiBriefcase size={20} /> },
   ];
 
-  const handleLogout = () => {
-    // Simulasi Logout
+  const handleLogout = async () => {
+    // Clear localStorage dan sign out dari Supabase
+    localStorage.removeItem('access_token');
+    await supabase.auth.signOut();
     navigate('/login');
   };
 
