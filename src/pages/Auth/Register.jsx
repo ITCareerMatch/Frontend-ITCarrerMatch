@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { FiMail, FiLock, FiCheckCircle, FiZap, FiShield, FiUser, FiArrowLeft } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
 import { FcGoogle } from 'react-icons/fc';
@@ -8,13 +8,23 @@ import { supabase } from '../../lib/supabase';
 
 export default function Register() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [gender, setGender] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // 1. Ambil query parameter ?redirect= dari URL
+  const queryParams = new URLSearchParams(location.search);
+  const redirectTarget = queryParams.get('redirect') || '/dashboard';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setErrorMsg('');
+
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -30,14 +40,17 @@ export default function Register() {
       // Jika Supabase di-setting untuk auto-login setelah register
       if (data.session) {
         localStorage.setItem('access_token', data.session.access_token);
-        await supabase.auth.setSession(data.session);
-        navigate('/dashboard');
+        // Arahkan kembali ke halaman tujuan
+        navigate(redirectTarget);
       } else {
-        alert("Registrasi berhasil! Silakan login.");
-        navigate('/login');
+        alert("Registrasi berhasil! Silakan periksa email Anda atau login.");
+        // Bawa parameter redirect ke halaman login
+        navigate(`/login${redirectTarget !== '/dashboard' ? `?redirect=${redirectTarget}` : ''}`);
       }
     } catch (error) {
-      alert("Gagal registrasi: " + error.message);
+      setErrorMsg("Gagal registrasi: " + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -116,7 +129,7 @@ export default function Register() {
         </div>
 
       {/* --- PANEL KANAN (REVISI REGISTER) --- */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-slate-50 flex-col">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-slate-50 flex-col overflow-y-auto">
         <div className="w-full max-w-md mb-8">
           <button type="button" className="flex items-center gap-2 text-sm font-bold text-blue-600 cursor-pointer hover:text-blue-700" onClick={() => navigate('/')}>
             <FiArrowLeft size={18} />
@@ -142,6 +155,11 @@ export default function Register() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {errorMsg && (
+                <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">
+                    {errorMsg}
+                </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Nama Lengkap</label>
               <div className="relative">
@@ -193,7 +211,7 @@ export default function Register() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Gender</label>
               <select
-                required onChange={(e) => setGender(e.target.value)}
+                required value={gender} onChange={(e) => setGender(e.target.value)}
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-4 pr-10 text-sm text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer"
               >
                 <option disabled value="">Pilih Gender</option>
@@ -203,19 +221,30 @@ export default function Register() {
               </select>
             </div>
 
-            <button type="submit" className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 cursor-pointer">
-              Buat Akun Gratis →
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 cursor-pointer disabled:bg-blue-300"
+            >
+              {loading ? "Memproses..." : "Buat Akun Gratis →"}
             </button>
           </form>
 
           <p className="text-center text-sm text-slate-500 mt-6">
-            Sudah punya akun? <button type="button" onClick={() => navigate('/login')} className="font-semibold text-blue-600 hover:underline cursor-pointer">Masuk</button>
+            Sudah punya akun?{' '}
+            <Link 
+              // 2. Meneruskan parameter redirect ke halaman login
+              to={`/login${redirectTarget !== '/dashboard' ? `?redirect=${redirectTarget}` : ''}`} 
+              className="font-semibold text-blue-600 hover:underline cursor-pointer"
+            >
+              Masuk
+            </Link>
           </p>
         </div>
 
-          <p className="text-center text-xs text-slate-400 mt-6">
-            Dengan mendaftar, Anda menyetujui <a href="#" className="text-blue-600 hover:underline">Ketentuan Layanan</a> dan <a href="#" className="text-blue-600 hover:underline">Kebijakan Privasi</a> kami.
-          </p>
+        <p className="text-center text-xs text-slate-400 mt-6">
+          Dengan mendaftar, Anda menyetujui <a href="#" className="text-blue-600 hover:underline">Ketentuan Layanan</a> dan <a href="#" className="text-blue-600 hover:underline">Kebijakan Privasi</a> kami.
+        </p>
       </div>
     </div>
   );

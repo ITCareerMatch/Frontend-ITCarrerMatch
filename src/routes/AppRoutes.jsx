@@ -1,8 +1,8 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
-import useAuth from '../context/useAuth';
+import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
+import AuthProvider from '../context/AuthContext';
 
-// 1. Lazy Loading Komponen (Code Splitting)
+// 1. Lazy Loading Komponen
 const LandingPage = lazy(() => import('../pages/LandingPage'));
 const PreLoginFlow = lazy(() => import('../pages/PreLoginFlow'));
 const Login = lazy(() => import('../pages/Auth/Login'));
@@ -17,133 +17,72 @@ const AnalysisResult = lazy(() => import('../pages/AnalysisResult'));
 const DashboardJobs = lazy(() => import('../pages/DashboardJobs'));
 const Settings = lazy(() => import('../pages/Settings'));
 
-// 2. Komponen Loading (Fallback)
+// 2. Komponen Loading
 const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="text-lg font-semibold text-blue-600">Loading...</div>
+  <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50/50">
+    <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+    <div className="text-sm font-semibold text-gray-500">Memuat halaman...</div>
   </div>
 );
 
-// 3. Sistem Protected Route (Mengecek session Supabase dari Context)
+// 3. Routing Protections
 const ProtectedRoute = ({ children }) => {
-  const { session, loading } = useAuth();
   const hasToken = !!localStorage.getItem('access_token');
-
-  if (loading && !hasToken) return <PageLoader />;
-  if (!session && !hasToken) return <Navigate to="/login" replace />;
+  if (!hasToken) return <Navigate to="/login" replace />;
   return children;
 };
 
-// Jika user sudah login, redirect dari rute publik ke dashboard
 const PublicRoute = ({ children }) => {
-  const { session, loading } = useAuth();
   const hasToken = !!localStorage.getItem('access_token');
-
-  if (loading && !hasToken) return <PageLoader />;
-  if (session || hasToken) return <Navigate to="/dashboard" replace />;
+  if (hasToken) return <Navigate to="/dashboard" replace />;
   return children;
 };
 
-// 4. Konfigurasi Router Utama
-const router = createBrowserRouter([
-  // --- RUTE PUBLIK ---
-  {
-    path: '/',
-    element: <LandingPage />,
-  },
-  {
-    path: '/lowongan',
-    element: <JobList />,
-  },
-  {
-    path: '/cek-skor',
-    element: <PreLoginFlow />,
-  },
-  {
-    path: '/login',
-    element: <Login />,
-  },
-  {
-    path: '/register',
-    element: <Register />,
-  },
+// Layout Pembungkus Utama untuk menyuntikkan AuthProvider di level Router
+const RootLayout = () => {
+  return (
+    <AuthProvider>
+      <Outlet />
+    </AuthProvider>
+  );
+};
 
-  // --- RUTE PRIVAT (Wajib Login) ---
+// 4. Konfigurasi Router (dengan RootLayout)
+const router = createBrowserRouter([
   {
-    element: <DashLayout />, 
+    element: <RootLayout />, // AuthProvider sekarang ada di level tertinggi sistem router
     children: [
+      { path: '/', element: <LandingPage /> },
+      { path: '/lowongan', element: <JobList /> },
+      { path: '/cek-skor', element: <PreLoginFlow /> },
+      { path: '/analisis-result', element: <AnalysisResult /> },
+      { path: '/login', element: <PublicRoute><Login /></PublicRoute> },
+      { path: '/register', element: <PublicRoute><Register /></PublicRoute> },
       {
-        path: 'dashboard',
-        element: (
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        ),
+        element: <DashLayout />,
+        children: [
+          { path: 'dashboard', element: <ProtectedRoute><Dashboard /></ProtectedRoute> },
+          { path: 'analisis-baru', element: <ProtectedRoute><NewAnalysis /></ProtectedRoute> },
+          { path: 'daftar-lowongan', element: <ProtectedRoute><DashboardJobs /></ProtectedRoute> },
+          { path: 'detail/:id', element: <ProtectedRoute><JobDetail /></ProtectedRoute> },
+          { path: 'editor', element: <ProtectedRoute><CvEditor /></ProtectedRoute> },
+          { path: 'pengaturan', element: <ProtectedRoute><Settings /></ProtectedRoute> },
+        ],
       },
       {
-        path: 'analisis-baru',
+        path: '*',
         element: (
-          <ProtectedRoute>
-            <NewAnalysis />
-          </ProtectedRoute>
+          <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 text-center">
+            <h1 className="text-6xl font-black text-gray-300 mb-4">404</h1>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Halaman Tidak Ditemukan</h2>
+            <a href="/" className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors">Kembali ke Beranda</a>
+          </div>
         ),
       },
-      {
-        path: 'hasil-analisis',
-        element: (
-          <ProtectedRoute>
-            <AnalysisResult />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'daftar-lowongan',
-        element: (
-          <ProtectedRoute>
-            <DashboardJobs />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        // UPDATE: Menambahkan parameter dinamis :id pada rute detail
-        path: 'detail/:id',
-        element: (
-          <ProtectedRoute>
-            <JobDetail />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'editor',
-        element: (
-          <ProtectedRoute>
-            <CvEditor />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: 'pengaturan',
-        element: (
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        ),
-      },
-    ],
-  },
-  
-  // --- RUTE ERROR (Halaman 404) ---
-  {
-    path: '*',
-    element: (
-      <div className="flex items-center justify-center min-h-screen">
-        <h1 className="text-2xl font-bold">404 - Halaman Tidak Ditemukan</h1>
-      </div>
-    ),
-  },
+    ]
+  }
 ]);
 
-// 5. Ekspor Provider
 export default function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>

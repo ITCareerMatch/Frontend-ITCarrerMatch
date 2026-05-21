@@ -1,28 +1,114 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  FiUploadCloud, FiEdit2, FiRefreshCw, FiZap, 
+import {
+  FiUploadCloud, FiEdit2, FiRefreshCw, FiZap,
   FiCheckCircle, FiShield, FiFileText, FiTarget, FiBarChart2, FiBriefcase, FiClock, FiPlus,
 } from 'react-icons/fi';
 import { BsStars, BsLightbulbFill } from 'react-icons/bs';
+import { analyzeCV, checkCVStatus, fetchAnalysisHistory } from '../../services/api';
 
 export default function NewAnalysis() {
   const navigate = useNavigate();
-  
+  const token = localStorage.getItem('access_token');
+
   // State untuk Tab (Upload vs Manual)
   const [activeTab, setActiveTab] = useState('upload');
-  
-  // State untuk efek loading simulasi analisis
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const handleStartAnalysis = () => {
+  // State untuk file upload
+  const [file, setFile] = useState(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState('');
+  const [taskId, setTaskId] = useState(null);
+
+  // State untuk history
+  const [history, setHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  // Polling interval
+  const [pollingInterval, setPollingInterval] = useState(null);
+
+  // Fetch analysis history on mount
+  useEffect(() => {
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    const fetchHistory = async () => {
+      try {
+        const data = await fetchAnalysisHistory(token, 1, 10);
+        setHistory(Array.isArray(data) ? data : data.data || []);
+      } catch (err) {
+        console.error('Error fetching history:', err);
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+
+    fetchHistory();
+  }, [token, navigate]);
+
+  // Handle file change
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+      setError('');
+    }
+  };
+
+  // Poll for analysis status
+  useEffect(() => {
+    if (!taskId || !token) return;
+
+    const poll = async () => {
+      try {
+        const result = await checkCVStatus(token, taskId);
+
+        if (result.status === 'completed') {
+          clearInterval(pollingInterval);
+          setIsAnalyzing(false);
+          setTaskId(null);
+          navigate('/hasil-analisis', { state: { analysisId: result.analysis_id } });
+        } else if (result.status === 'failed') {
+          clearInterval(pollingInterval);
+          setIsAnalyzing(false);
+          setError('Analisis gagal. Silakan coba lagi.');
+          setTaskId(null);
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+    };
+
+    const interval = setInterval(poll, 2000);
+    setPollingInterval(interval);
+
+    return () => clearInterval(interval);
+  }, [taskId, token, navigate, pollingInterval]);
+
+  // Start analysis
+  const handleStartAnalysis = async () => {
+    if (!file) {
+      setError('Mohon pilih file CV terlebih dahulu');
+      return;
+    }
+
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
     setIsAnalyzing(true);
-    // Simulasi waktu proses analisis AI selama 1.5 detik
-    setTimeout(() => {
+    setError('');
+
+    try {
+      const result = await analyzeCV(token, file);
+      setTaskId(result.task_id);
+    } catch (err) {
+      setError(err.message || 'Gagal memulai analisis. Silakan coba lagi.');
       setIsAnalyzing(false);
-      // Arahkan ke halaman hasil analisis (Hasil Analisis Penuh)
-      navigate('/hasil-analisis');
-    }, 1500);
+      console.error('Analysis error:', err);
+    }
   };
 
   return (
@@ -84,34 +170,54 @@ export default function NewAnalysis() {
             <div className="mb-8">
               {activeTab === 'upload' ? (
                 /* AREA DRAG & DROP */
-                <div className="border-2 border-dashed border-gray-300 rounded-2xl p-12 flex flex-col items-center justify-center text-center hover:bg-indigo-50/50 hover:border-indigo-300 transition-colors cursor-pointer group">
-                  <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <FiUploadCloud size={32} />
-                  </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">Drag & Drop CV baru di sini</h3>
-                  <p className="text-sm text-gray-500 mb-6">atau klik untuk memilih file</p>
-                  <div className="flex gap-3 text-xs font-semibold text-gray-400">
-                    <span className="bg-gray-100 px-3 py-1 rounded-md">PDF</span>
-                    <span className="bg-gray-100 px-3 py-1 rounded-md">DOCX</span>
-                    <span className="bg-gray-100 px-3 py-1 rounded-md">Maks 5MB</span>
-                  </div>
+                <div>
+                  <label className="border-2 border-dashed border-gray-300 rounded-2xl p-12 flex flex-col items-center justify-center text-center hover:bg-indigo-50/50 hover:border-indigo-300 transition-colors cursor-pointer group block">
+                    <input
+                      type="file"
+                      onChange={handleFileChange}
+                      accept=".pdf,.docx"
+                      className="hidden"
+                    />
+                    {file ? (
+                      <div className="flex items-center gap-3">
+                        <FiFileText className="text-indigo-600" size={32} />
+                        <div className="text-left">
+                          <p className="text-sm font-bold text-gray-900">{file.name}</p>
+                          <p className="text-xs text-green-600 flex items-center gap-1"><FiCheckCircle /> Siap dianalisis</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                          <FiUploadCloud size={32} />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Drag & Drop CV baru di sini</h3>
+                        <p className="text-sm text-gray-500 mb-6">atau klik untuk memilih file</p>
+                        <div className="flex gap-3 text-xs font-semibold text-gray-400">
+                          <span className="bg-gray-100 px-3 py-1 rounded-md">PDF</span>
+                          <span className="bg-gray-100 px-3 py-1 rounded-md">DOCX</span>
+                          <span className="bg-gray-100 px-3 py-1 rounded-md">Maks 5MB</span>
+                        </div>
+                      </>
+                    )}
+                  </label>
                 </div>
               ) : (
                 /* AREA ISI MANUAL */
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-bold text-gray-900 mb-2">Pengalaman Kerja</label>
-                    <textarea 
-                      rows="5" 
-                      placeholder="Contoh: 3 tahun sebagai Frontend Developer di PT ABC..." 
+                    <textarea
+                      rows="5"
+                      placeholder="Contoh: 3 tahun sebagai Frontend Developer di PT ABC..."
                       className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-gray-50 focus:bg-white transition-colors"
                     ></textarea>
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-gray-900 mb-2">Daftar Keahlian</label>
-                    <textarea 
-                      rows="3" 
-                      placeholder="Contoh: React, TypeScript, Node.js, Figma..." 
+                    <textarea
+                      rows="3"
+                      placeholder="Contoh: React, TypeScript, Node.js, Figma..."
                       className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-gray-50 focus:bg-white transition-colors"
                     ></textarea>
                   </div>
@@ -119,14 +225,20 @@ export default function NewAnalysis() {
               )}
             </div>
 
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+                {error}
+              </div>
+            )}
+
             {/* Tombol Mulai Analisis */}
-            <button 
+            <button
               onClick={handleStartAnalysis}
-              disabled={isAnalyzing}
-              className={`w-full font-bold py-4 rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 ${isAnalyzing ? 'bg-indigo-400 text-white cursor-not-allowed' : 'bg-indigo-200 text-indigo-700 hover:bg-indigo-300'}`}
+              disabled={isAnalyzing || !file}
+              className={`w-full font-bold py-4 rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 ${isAnalyzing || !file ? 'bg-indigo-300 text-white cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
             >
               {isAnalyzing ? (
-                <><FiRefreshCw className="animate-spin" size={20} /> Memproses Analisis AI...</>
+                <><FiRefreshCw className="animate-spin" size={20} /> Memproses Analisis AI...{taskId && ` (ID: ${taskId})`}</>
               ) : (
                 <><FiZap size={20} /> Mulai Analisis Penuh</>
               )}
@@ -146,39 +258,33 @@ export default function NewAnalysis() {
           {/* Scan Terakhir */}
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
             <h3 className="font-bold text-gray-900 mb-1">Scan Terakhir</h3>
-            <p className="text-xs text-gray-500 mb-5">Klik untuk scan ulang dengan CV yang sama</p>
-            
+            <p className="text-xs text-gray-500 mb-5">Klik untuk lihat hasil analisis</p>
+
             <div className="space-y-4">
-              <div className="flex items-center justify-between group cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-green-50 text-green-500 flex items-center justify-center border border-green-100"><FiTarget size={18}/></div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">Backend Engineer (Go)</p>
-                    <p className="text-xs text-gray-500">3 Apr 2026 · Skor: 75</p>
+              {loadingHistory ? (
+                <p className="text-sm text-gray-500">Memuat riwayat...</p>
+              ) : history && history.length > 0 ? (
+                history.slice(0, 3).map((scan, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => navigate(`/hasil-analisis`, { state: { analysisId: scan.id } })}
+                    className="flex items-center justify-between group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-green-50 text-green-500 flex items-center justify-center border border-green-100">
+                        <FiTarget size={18}/>
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{scan.job_title || 'Analisis CV'}</p>
+                        <p className="text-xs text-gray-500">{new Date(scan.created_at).toLocaleDateString('id-ID')} · Skor: {scan.score || scan.match_score || 'N/A'}</p>
+                      </div>
+                    </div>
+                    <FiRefreshCw className="text-gray-300 group-hover:text-indigo-600 transition-colors" />
                   </div>
-                </div>
-                <FiRefreshCw className="text-gray-300 group-hover:text-indigo-600 transition-colors" />
-              </div>
-              <div className="flex items-center justify-between group cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-yellow-50 text-yellow-500 flex items-center justify-center border border-yellow-100"><FiTarget size={18}/></div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">Frontend Developer</p>
-                    <p className="text-xs text-gray-500">1 Apr 2026 · Skor: 68</p>
-                  </div>
-                </div>
-                <FiRefreshCw className="text-gray-300 group-hover:text-indigo-600 transition-colors" />
-              </div>
-              <div className="flex items-center justify-between group cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-green-50 text-green-500 flex items-center justify-center border border-green-100"><FiTarget size={18}/></div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">Fullstack Engineer</p>
-                    <p className="text-xs text-gray-500">28 Mar 2026 · Skor: 72</p>
-                  </div>
-                </div>
-                <FiRefreshCw className="text-gray-300 group-hover:text-indigo-600 transition-colors" />
-              </div>
+                ))
+              ) : (
+                <p className="text-sm text-gray-500">Belum ada analisis sebelumnya</p>
+              )}
             </div>
           </div>
 

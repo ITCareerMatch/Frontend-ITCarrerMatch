@@ -1,6 +1,8 @@
 import { useContext } from 'react';
-import AuthContext from './authContext';
+import { AuthContext } from './AuthContext'; // Import menggunakan kurung kurawal
 
-const useAuth = () => useContext(AuthContext);
+const useAuth = () => {
+  return useContext(AuthContext);
+};
 
 export default useAuth;
