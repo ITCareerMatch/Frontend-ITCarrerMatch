@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { 
   FiLock, FiCheckCircle, FiXCircle, FiTrendingUp, FiBriefcase, FiMapPin, FiClock, FiDollarSign
 } from 'react-icons/fi';
 import { BsStars, BsArrowRight } from 'react-icons/bs';
 
-// PERBAIKAN: Memastikan claimCVSession diimpor
-import { fetchJobRecommendations, claimCVSession } from '../../services/api'; 
+import { fetchJobRecommendations, claimCVSession, fetchAnalysisDetail } from '../../services/api'; 
 
 export default function AnalysisResult() {
   const navigate = useNavigate();
+  const location = useLocation(); 
   const isLoggedIn = !!localStorage.getItem('access_token');
   const hasClaimedRef = useRef(false);
   
@@ -22,10 +22,29 @@ export default function AnalysisResult() {
       setLoading(true);
       const guestSessionData = sessionStorage.getItem('guest_cv_result');
       const token = localStorage.getItem('access_token');
+      
+      // Ambil analysisId dari state saat diarahkan dari halaman History atau NewAnalysis
+      const stateAnalysisId = location.state?.analysisId; 
 
       let analysisData = null;
-      if (guestSessionData) {
-        try {
+
+      try {
+        // SKENARIO 1: Pengguna sudah login & memiliki ID Analisis spesifik
+        if (isLoggedIn && stateAnalysisId) {
+          const result = await fetchAnalysisDetail(token, stateAnalysisId);
+          analysisData = result; 
+          analysisData.gaugePercentage = ((analysisData.score || 0) / 100) * 440;
+          
+          if (Array.isArray(analysisData.ai_insight)) {
+            analysisData.ai_insights_formatted = analysisData.ai_insight.map((text, i) => ({
+               title: `Insight ${i+1}`,
+               content: text
+            }));
+          }
+          setData(analysisData);
+        } 
+        // SKENARIO 2: Pengguna datang dari alur Guest (PreLoginFlow)
+        else if (guestSessionData) {
           analysisData = JSON.parse(guestSessionData);
           analysisData.gaugePercentage = ((analysisData.score || 0) / 100) * 440;
           
@@ -35,28 +54,20 @@ export default function AnalysisResult() {
                content: text
             }));
           }
-        // eslint-disable-next-line no-unused-vars
-        } catch (error) {
-          sessionStorage.removeItem('guest_cv_result');
-          navigate('/');
+          setData(analysisData);
+        } 
+        // SKENARIO 3: Direct visit tanpa state (Kembalikan ke halaman utama)
+        else {
+          navigate(isLoggedIn ? '/dashboard' : '/');
           return;
         }
-      } else if (isLoggedIn) {
-        analysisData = { score: 85, summary: "Memuat riwayat analisis terakhir..." };
-      } else {
-        navigate('/');
-        return;
-      }
-      setData(analysisData);
 
-      // --- PERBAIKAN: Mencegah Balap Lari (Race Condition) dengan Backend ---
-      if (isLoggedIn && token) {
-        try {
-          // 1. Proses Klaim CV
+        // --- Mencegah Balap Lari (Race Condition) dengan Backend ---
+        if (isLoggedIn && token) {
           if (analysisData && analysisData.temp_token) {
-            // Cek apakah sudah pernah diklaim sebelumnya (Mencegah StrictMode double-fire)
+            // Cek apakah sudah pernah diklaim sebelumnya (Mencegah StrictMode double-fire di React)
             if (!hasClaimedRef.current) {
-                hasClaimedRef.current = true; // Tandai bahwa proses klaim SEDANG BERJALAN
+                hasClaimedRef.current = true; 
                 console.log("Mengklaim sesi CV ke akun Anda...");
                 await claimCVSession(token, analysisData.temp_token);
                 
@@ -69,7 +80,7 @@ export default function AnalysisResult() {
             console.log("CV berhasil diklaim. Menunggu AI Backend memproses lowongan...");
             setRecommendedJobs([]); 
           } else {
-             // 2. Jika tidak ada temp_token (kunjungan normal), ambil rekomendasi
+             // Jika tidak ada temp_token (kunjungan normal), ambil rekomendasi pekerjaan
              const realRecommendations = await fetchJobRecommendations(token);
              const mappedJobs = realRecommendations.map(job => ({
                id: job.job_id,
@@ -85,19 +96,21 @@ export default function AnalysisResult() {
              }));
              setRecommendedJobs(mappedJobs);
           }
-        } catch (error) {
-          console.error("Gagal load API Rekomendasi/Klaim CV:", error);
-          setRecommendedJobs([]);
+        } else {
+           setRecommendedJobs([]);
         }
-      } else {
-         setRecommendedJobs([]);
-      }
 
-      setLoading(false);
+      } catch (error) {
+        console.error("Gagal load API Rekomendasi/Analisis CV:", error);
+        if (!analysisData) navigate('/'); 
+        setRecommendedJobs([]);
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadData();
-  }, [navigate, isLoggedIn]);
+  }, [navigate, isLoggedIn, location.state]);
 
   if (loading) {
     return (
@@ -123,7 +136,7 @@ export default function AnalysisResult() {
             Kembali ke Dashboard &rarr;
           </button>
         ) : (
-          <button onClick={() => navigate('/login')} className="text-gray-600 font-semibold hover:text-blue-600 transition-all text-sm cursor-pointer">
+          <button onClick={() => navigate('/login?redirect=/analisis-result')} className="text-gray-600 font-semibold hover:text-blue-600 transition-all text-sm cursor-pointer">
             Masuk / Daftar
           </button>
         )}
@@ -150,7 +163,7 @@ export default function AnalysisResult() {
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center mt-1">
-                  <span className="text-5xl font-black text-gray-900 leading-none">{data?.score || 75}</span>
+                  <span className="text-5xl font-black text-gray-900 leading-none">{data?.score || 0}</span>
                   <span className="text-xs font-bold text-gray-400 mt-1">SLA SCORE</span>
                 </div>
               </div>
@@ -158,7 +171,7 @@ export default function AnalysisResult() {
               <div className={`inline-flex items-center gap-2 px-4 py-1.5 ${data?.score >= 80 ? 'bg-green-50 text-green-600 border-green-100' : 'bg-orange-50 text-orange-600 border-orange-100'} rounded-full text-xs font-extrabold mb-4 border`}>
                 <FiTrendingUp /> {data?.score >= 80 ? 'Kompatibilitas Tinggi' : 'Kompatibilitas Moderat'}
               </div>
-              <p className="text-xs text-gray-500 leading-relaxed max-w-xs">{data?.summary}</p>
+              <p className="text-xs text-gray-500 leading-relaxed max-w-xs">{data?.summary || "Rangkuman profil belum tersedia."}</p>
             </div>
 
             {isLoggedIn && (
@@ -202,7 +215,7 @@ export default function AnalysisResult() {
                   <h4 className="font-bold text-lg text-gray-900">Keahlian Yang Sesuai (Skill Match)</h4>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {(data?.extracted_skills || ['Loading...']).map((skill, i) => (
+                  {(data?.extracted_skills && data.extracted_skills.length > 0 ? data.extracted_skills : ['Belum ada data / Loading...']).map((skill, i) => (
                     <span key={i} className="bg-green-50/70 text-green-700 px-3 py-1.5 rounded-xl text-xs font-semibold border border-green-100/50 flex items-center gap-1.5">
                       <FiCheckCircle size={14} className="text-green-500" /> {skill}
                     </span>
@@ -216,7 +229,7 @@ export default function AnalysisResult() {
                   <h4 className="font-bold text-lg text-gray-900">Kompetensi Yang Kurang (Skill Gap)</h4>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {(data?.skill_gap || ['Loading...']).map((skill, i) => (
+                  {(data?.skill_gap && data.skill_gap.length > 0 ? data.skill_gap : ['Belum ada data / Loading...']).map((skill, i) => (
                     <span key={i} className="bg-red-50/70 text-red-700 px-3 py-1.5 rounded-xl text-xs font-semibold border border-red-100/50 flex items-center gap-1.5">
                       <FiXCircle size={14} className="text-red-500" /> {skill}
                     </span>
@@ -230,7 +243,7 @@ export default function AnalysisResult() {
                   <h4 className="font-bold text-lg text-white">Rekomendasi Konstruksi Narasi AI</h4>
                 </div>
                 <div className="space-y-3">
-                  {(data?.ai_insights_formatted || []).map((item, i) => (
+                  {(data?.ai_insights_formatted && data.ai_insights_formatted.length > 0 ? data.ai_insights_formatted : [{title: "Info", content: "Saran AI belum tersedia."}]).map((item, i) => (
                     <div key={i} className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/10 text-xs">
                       <strong className="text-yellow-300 block mb-1">{item.title}</strong>
                       <p className="text-purple-100 leading-relaxed">{item.content}</p>
@@ -260,7 +273,7 @@ export default function AnalysisResult() {
           <div className="space-y-4">
             {recommendedJobs.length === 0 && isLoggedIn ? (
               <div className="text-center py-10 bg-white rounded-2xl border border-gray-100 text-gray-500 text-sm">
-                Belum ada rekomendasi pekerjaan saat ini.
+                Belum ada rekomendasi pekerjaan saat ini, atau AI sedang memproses pembaruan.
               </div>
             ) : recommendedJobs.length === 0 && !isLoggedIn ? (
                <div className="text-center py-10 bg-white rounded-2xl border border-gray-100 text-gray-400 text-sm filter blur-[2px]">

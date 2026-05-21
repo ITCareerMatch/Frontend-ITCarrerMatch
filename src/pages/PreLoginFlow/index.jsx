@@ -15,8 +15,15 @@ export default function PreLoginFlow() {
   const [error, setError] = useState('');
 
   const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      // Validasi file maksimal 1MB
+      if (selectedFile.size > 1024 * 1024) {
+        setError('Mohon maaf, ukuran file maksimal adalah 1MB.');
+        setFile(null);
+        return;
+      }
+      setFile(selectedFile);
       setError('');
     }
   };

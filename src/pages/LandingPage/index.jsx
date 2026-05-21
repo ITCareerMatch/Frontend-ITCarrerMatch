@@ -16,114 +16,72 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white font-sans text-gray-800">
       
       {/* --- NAVBAR --- */}
-      <header className="flex justify-between items-center py-4 px-8 md:px-16 border-b border-gray-100 bg-white sticky top-0 z-50">
-        <div className="flex items-center gap-2 font-bold text-xl text-gray-900">
+      <header className="flex justify-between items-center py-4 px-6 md:px-12 lg:px-16 border-b border-gray-100 bg-white sticky top-0 z-50">
+        {/* Logo */}
+        <div className="flex items-center gap-2 font-bold text-xl text-gray-900 cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
             <FiFileText size={18} />
           </div>
           ITCareerMatch
         </div>
 
+        {/* Menu Desktop */}
         <nav className="hidden md:flex gap-8 text-sm font-medium text-gray-600">
-          <a href="#cara-kerja" className="hover:text-blue-600 transition-colors">Cara Kerja</a>
-          <a href="#fitur" className="hover:text-blue-600 transition-colors">Fitur AI</a>
+          <a href="#cara-kerja" className="hover:text-blue-600 transition-colors cursor-pointer">Cara Kerja</a>
+          <a href="#fitur" className="hover:text-blue-600 transition-colors cursor-pointer">Fitur AI</a>
           <a onClick={() => navigate('/lowongan')} className="hover:text-blue-600 transition-colors cursor-pointer">Daftar Lowongan</a>
-          {!isLoggedIn && (
-            <button onClick={() => navigate('/login')} className="hover:text-blue-600 transition-colors cursor-pointer">Masuk</button>
-          )}
         </nav>
 
+        {/* Tombol Mobile Toggle */}
         <button
           type="button"
           onClick={() => setMobileMenuOpen((prev) => !prev)}
           className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
-          aria-label="Toggle menu"
         >
           {mobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
         </button>
 
+        {/* Aksi Desktop */}
         <div className="hidden md:flex items-center gap-4">
-          {isLoggedIn && (
+          {isLoggedIn ? (
             <button
               onClick={() => navigate('/dashboard')}
-              className="bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 border border-gray-100 transition-colors mr-2 cursor-pointer"
+              className="bg-white text-gray-700 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-50 border border-gray-200 shadow-sm transition-colors cursor-pointer"
             >
-              Dashboard
+              Ke Dashboard
+            </button>
+          ) : (
+            <button onClick={() => navigate('/login')} className="hover:text-blue-600 text-sm font-bold transition-colors cursor-pointer mr-2">
+              Masuk
             </button>
           )}
           <button 
             onClick={() => navigate('/cek-skor')}
-            className="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors cursor-pointer"
+            className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 shadow-md shadow-blue-200 transition-colors cursor-pointer flex items-center gap-2"
           >
-            Cek Skor CV
+            <BsStars /> Cek Skor CV
           </button>
         </div>
       </header>
 
-      <div className={`${mobileMenuOpen ? 'fixed' : 'hidden'} md:hidden inset-x-0 top-16 z-40 bg-white border-b border-gray-100 px-8 py-4 shadow-xl max-h-[calc(100vh-4rem)] overflow-y-auto`}> 
-        <div className="flex flex-col gap-4 text-sm font-medium text-gray-700 items-center bg-white py-4">
-          <a
-            href="#cara-kerja"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block hover:text-blue-600 transition-colors"
-          >
-            Cara Kerja
-          </a>
-          <a
-            href="#fitur"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block hover:text-blue-600 transition-colors"
-          >
-            Fitur AI
-          </a>
-          <button
-            type="button"
-            onClick={() => {
-              setMobileMenuOpen(false);
-              navigate('/lowongan');
-            }}
-            className="text-left hover:text-blue-600 transition-colors"
-          >
-            Daftar Lowongan
-          </button>
-
-          <div className="flex flex-col gap-3 pt-2 w-full">
-            {isLoggedIn ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate('/dashboard');
-                }}
-                className="w-full bg-white text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 border border-gray-100 transition-colors"
-              >
-                Dashboard
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  navigate('/login');
-                }}
-                className="w-full text-center text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors border border-gray-100 bg-gray-50"
-              >
-                Masuk
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                setMobileMenuOpen(false);
-                navigate('/cek-skor');
-              }}
-              className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-            >
-              Cek Skor CV
-            </button>
+      {/* --- MOBILE MENU --- */}
+      {mobileMenuOpen && (
+        <div className="fixed md:hidden inset-x-0 top-[73px] z-40 bg-white border-b border-gray-100 px-8 py-6 shadow-xl max-h-[calc(100vh-4rem)] overflow-y-auto"> 
+          <div className="flex flex-col gap-5 text-sm font-bold text-gray-700 items-start bg-white">
+            <a href="#cara-kerja" onClick={() => setMobileMenuOpen(false)} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-gray-50 pb-3">Cara Kerja</a>
+            <a href="#fitur" onClick={() => setMobileMenuOpen(false)} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-gray-50 pb-3">Fitur AI</a>
+            <a onClick={() => { setMobileMenuOpen(false); navigate('/lowongan'); }} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-gray-50 pb-3">Daftar Lowongan</a>
+            <div className="flex flex-col gap-3 pt-2 w-full">
+              {isLoggedIn ? (
+                <button onClick={() => { setMobileMenuOpen(false); navigate('/dashboard'); }} className="w-full bg-white text-gray-700 px-4 py-3 rounded-xl border border-gray-200 transition-colors">Ke Dashboard</button>
+              ) : (
+                <button onClick={() => { setMobileMenuOpen(false); navigate('/login'); }} className="w-full text-center text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-50 transition-colors border border-gray-200 bg-gray-50">Masuk</button>
+              )}
+              <button onClick={() => { setMobileMenuOpen(false); navigate('/cek-skor'); }} className="w-full bg-blue-600 text-white px-4 py-3 rounded-xl hover:bg-blue-700 transition-colors flex justify-center items-center gap-2"><BsStars /> Cek Skor CV</button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* --- HERO SECTION --- */}
       <section className="pt-16 pb-12 px-8 md:px-16 lg:flex items-center justify-between gap-12 max-w-7xl mx-auto">
