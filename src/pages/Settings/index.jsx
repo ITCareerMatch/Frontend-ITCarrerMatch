@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  FiMail, FiPhone, FiMapPin, FiBriefcase, 
-  FiLock, FiBell, FiSave, FiCheckCircle, 
+  FiMail, FiLock, FiBell, FiSave, FiCheckCircle, 
   FiArrowRight, FiTrendingUp, FiFileText, 
-  FiCamera, FiBook, FiEdit2, FiX
+  FiCamera, FiEdit2, FiX, FiRefreshCw, FiUser
 } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
 import { useNavigate } from 'react-router-dom';
+
+// Import fungsi API & Supabase
+import { fetchUserProfile, updateUserProfile } from '../../services/api';
+import { supabase } from '../../lib/supabase'; // Pastikan path ini benar sesuai struktur Anda
 
 // --- KOMPONEN BANTUAN ---
 const ToggleSwitch = ({ active, onClick }) => (
@@ -20,16 +23,23 @@ const ToggleSwitch = ({ active, onClick }) => (
 
 export default function Settings() {
   const navigate = useNavigate();
-  // --- STATE UNTUK DATA FORM ---
+  const token = localStorage.getItem('access_token');
+
+  // --- STATE LOADING & ERROR ---
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  // --- STATE UNTUK DATA FORM (Disesuaikan dengan Backend Anda) ---
   const [profileData, setProfileData] = useState({
-    name: 'Budi Santoso',
-    role: 'Backend Engineer',
-    location: 'Jakarta, Indonesia',
-    summary: 'Backend Engineer berpengalaman dengan spesialisasi Golang dan microservices. Passionate tentang membangun sistem yang scalable dan reliable.',
-    email: 'budi.santoso@email.com',
-    phone: '+62 812-3456-7890',
-    experience: '4',
-    education: 'S1 Teknik Informatika — Universitas Indonesia'
+    name: '',
+    email: '',
+    gender: '' // Hanya 'male', 'female', atau 'other' sesuai Swagger Backend
+  });
+
+  // State khusus password via Supabase
+  const [passwords, setPasswords] = useState({
+    newPassword: ''
   });
 
   const [notifState, setNotifState] = useState({
@@ -44,70 +54,148 @@ export default function Settings() {
     contact: false
   });
 
+  // --- FETCH DATA SAAT KOMPONEN DIMUAT ---
+  useEffect(() => {
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    const loadProfile = async () => {
+      try {
+        const data = await fetchUserProfile(token);
+        
+        // Mengisi state hanya dengan data yang didukung Backend
+        setProfileData({
+          name: data?.name || '',
+          email: data?.email || '',
+          gender: data?.gender || ''
+        });
+      } catch (err) {
+        console.error("Gagal memuat profil:", err);
+        setError('Gagal memuat data profil. Silakan muat ulang halaman.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [token, navigate]);
+
   // --- HANDLER ---
   const handleChange = (e) => {
     const { name, value } = e.target;
     setProfileData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswords(prev => ({ ...prev, [name]: value }));
+  }
+
   const toggleEdit = (section, isEditing) => {
     setEditMode(prev => ({ ...prev, [section]: isEditing }));
-    // Note: Di aplikasi nyata, jika isEditing false (Batal), kita mereset state ke data awal database
+    if (!isEditing && section === 'contact') {
+      setPasswords({ newPassword: '' }); // Bersihkan input password saat batal
+    }
   };
 
-  const handleSaveSection = (section) => {
-    // Simulasi penyimpanan data per bagian
-    setEditMode(prev => ({ ...prev, [section]: false }));
-    alert(`Data ${section === 'profile' ? 'Profil' : 'Kontak & Keamanan'} berhasil diperbarui!`);
+  const handleSaveSection = async (section) => {
+    setSaving(true);
+    setError('');
+
+    try {
+      if (section === 'profile') {
+        // Hanya kirim field yang tervalidasi oleh backend (name, gender)
+        const payload = {
+          name: profileData.name,
+          gender: profileData.gender
+        };
+        await updateUserProfile(token, payload);
+        alert('Data Profil berhasil diperbarui!');
+      } 
+      
+      else if (section === 'contact') {
+        // Jika user mengisi password baru, update via Supabase SDK
+        if (passwords.newPassword) {
+          if (passwords.newPassword.length < 6) {
+            throw new Error('Password minimal 6 karakter.');
+          }
+          const { error: authError } = await supabase.auth.updateUser({
+            password: passwords.newPassword
+          });
+          
+          if (authError) throw authError;
+          alert('Kata sandi berhasil diperbarui secara aman!');
+          setPasswords({ newPassword: '' });
+        } else {
+          alert('Tidak ada perubahan keamanan yang dilakukan.');
+        }
+      }
+
+      setEditMode(prev => ({ ...prev, [section]: false }));
+
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Gagal menyimpan perubahan.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  // Fungsi dinamis untuk styling input berdasarkan mode edit
   const getInputClass = (isEditing) => `w-full px-4 py-3 border rounded-xl outline-none text-sm transition-colors ${
     isEditing 
       ? 'border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white text-gray-900' 
       : 'border-transparent bg-gray-50 text-gray-600 cursor-not-allowed'
   }`;
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full py-20">
+        <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+        <p className="text-sm font-semibold text-gray-500">Memuat profil Anda...</p>
+      </div>
+    );
+  }
+  const displayName = profileData.name || (profileData.email ? profileData.email.split('@')[0] : 'Pengguna Terdaftar');
+  // Generate Inisial Avatar
+  const avatarInitials = displayName.substring(0, 2).toUpperCase();
+
   return (
     <div className="max-w-6xl mx-auto pb-12 font-sans text-gray-800">
       
+      {/* Error Banner */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 text-red-600 border border-red-200 rounded-2xl text-sm font-medium">
+          {error}
+        </div>
+      )}
+
       {/* --- BAGIAN ATAS: BANNER & INFO SINGKAT --- */}
       <div className="mb-8 shadow-sm rounded-3xl bg-white border border-gray-100 relative">
         <div className="h-32 bg-gradient-to-r from-orange-500 to-red-500 rounded-t-3xl w-full"></div>
         
         <div className="p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
           
-          {/* Avatar Interaktif */}
+          {/* Avatar */}
           <div className="flex flex-col md:flex-row items-start md:items-end gap-4 mt--12">
             <div className="absolute -top-12 left-6 md:left-8 w-24 h-24 bg-indigo-600 text-white rounded-2xl border-4 border-white flex items-center justify-center text-3xl font-bold shadow-md group cursor-pointer overflow-hidden">
-              <span>{profileData.name.substring(0, 2).toUpperCase()}</span>
-              {/* Overlay Hover Ubah Foto */}
+              <span>{avatarInitials}</span>
               <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <FiCamera size={24} />
                 <span className="text-[10px] mt-1">Ubah Foto</span>
               </div>
             </div>
             <div className="mt-14 md:mt-0 md:ml-32">
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">{profileData.name}</h1>
-              <p className="text-sm text-gray-500">{profileData.role} · {profileData.location}</p>
-            </div>
-          </div>
-
-          {/* Statistik Top */}
-          <div className="flex gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-            <div className="bg-gray-50 border border-gray-100 rounded-xl px-5 py-3 text-center min-w-[100px]">
-              <div className="text-2xl font-bold text-blue-600">75</div>
-              <div className="text-[10px] uppercase font-semibold text-gray-400 mt-1">Skor Terakhir</div>
-            </div>
-            <div className="bg-gray-50 border border-gray-100 rounded-xl px-5 py-3 text-center min-w-[100px]">
-              <div className="text-2xl font-bold text-purple-600">4</div>
-              <div className="text-[10px] uppercase font-semibold text-gray-400 mt-1">Total Analisis</div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">{displayName}</h1>
+              <p className="text-sm text-gray-500">
+                {profileData.email}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* --- KONTEN UTAMA (LAYOUT GANDA) --- */}
       <div className="flex flex-col lg:flex-row gap-6 animate-fadeIn">
         
         {/* ========================================== */}
@@ -120,7 +208,7 @@ export default function Settings() {
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">Informasi Profil</h2>
-                <p className="text-sm text-gray-500 mt-1">Data ini akan digunakan sebagai referensi utama analisis CV.</p>
+                <p className="text-sm text-gray-500 mt-1">Data dasar yang digunakan sebagai referensi akun Anda.</p>
               </div>
               {!editMode.profile && (
                 <button 
@@ -133,36 +221,25 @@ export default function Settings() {
             </div>
             
             <div className="space-y-5">
-              <div className="grid md:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Nama Lengkap</label>
-                  <input type="text" name="name" disabled={!editMode.profile} value={profileData.name} onChange={handleChange} className={getInputClass(editMode.profile)} />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Posisi / Pekerjaan</label>
-                  <input type="text" name="role" disabled={!editMode.profile} value={profileData.role} onChange={handleChange} className={getInputClass(editMode.profile)} />
-                </div>
-              </div>
-              
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Ringkasan Profil (Bio)</label>
-                <textarea rows="3" name="summary" disabled={!editMode.profile} value={profileData.summary} onChange={handleChange} className={`${getInputClass(editMode.profile)} leading-relaxed resize-none`}></textarea>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><FiMapPin className="text-gray-400"/> Lokasi</label>
-                  <input type="text" name="location" disabled={!editMode.profile} value={profileData.location} onChange={handleChange} className={getInputClass(editMode.profile)} />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><FiBriefcase className="text-gray-400"/> Pengalaman (Tahun)</label>
-                  <input type="number" name="experience" disabled={!editMode.profile} value={profileData.experience} onChange={handleChange} className={getInputClass(editMode.profile)} />
-                </div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Nama Lengkap</label>
+                <input type="text" name="name" disabled={!editMode.profile} value={profileData.name} onChange={handleChange} className={getInputClass(editMode.profile)} placeholder="Contoh: Budi Santoso" />
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><FiBook className="text-gray-400"/> Pendidikan Terakhir</label>
-                <input type="text" name="education" disabled={!editMode.profile} value={profileData.education} onChange={handleChange} className={getInputClass(editMode.profile)} />
+                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><FiUser className="text-gray-400"/> Jenis Kelamin</label>
+                <select 
+                  name="gender" 
+                  disabled={!editMode.profile} 
+                  value={profileData.gender} 
+                  onChange={handleChange} 
+                  className={getInputClass(editMode.profile)}
+                >
+                  <option value="">Pilih Jenis Kelamin</option>
+                  <option value="L">Laki-Laki</option>
+                  <option value="P">Perempuan</option>
+                  <option value="O">Lainnya</option>
+                </select>
               </div>
             </div>
 
@@ -171,15 +248,18 @@ export default function Settings() {
               <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100 animate-fadeIn">
                 <button 
                   onClick={() => toggleEdit('profile', false)} 
-                  className="px-6 py-2.5 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition-colors text-sm flex items-center gap-2 cursor-pointer"
+                  disabled={saving}
+                  className="px-6 py-2.5 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition-colors text-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <FiX size={18}/> Batal
                 </button>
                 <button 
                   onClick={() => handleSaveSection('profile')} 
-                  className="px-6 py-2.5 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-200 transition-colors text-sm flex items-center gap-2 cursor-pointer"
+                  disabled={saving}
+                  className="px-6 py-2.5 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-200 transition-colors text-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                  <FiSave size={18}/> Simpan Profil
+                  {saving ? <FiRefreshCw className="animate-spin" size={18}/> : <FiSave size={18}/>} 
+                  {saving ? 'Menyimpan...' : 'Simpan Profil'}
                 </button>
               </div>
             )}
@@ -189,8 +269,8 @@ export default function Settings() {
           <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm transition-all duration-300">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Kontak & Keamanan</h2>
-                <p className="text-sm text-gray-500 mt-1">Kelola email, nomor telepon, dan kata sandi akun Anda.</p>
+                <h2 className="text-lg font-bold text-gray-900">Keamanan Akun</h2>
+                <p className="text-sm text-gray-500 mt-1">Kelola email dan kata sandi untuk keamanan akses Anda.</p>
               </div>
               {!editMode.contact && (
                 <button 
@@ -203,42 +283,45 @@ export default function Settings() {
             </div>
             
             <div className="space-y-5">
-              <div className="grid md:grid-cols-2 gap-5 mb-6">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><FiMail className="text-gray-400"/> Email Akun</label>
-                  <input type="email" name="email" disabled={!editMode.contact} value={profileData.email} onChange={handleChange} className={getInputClass(editMode.contact)} />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><FiPhone className="text-gray-400"/> Nomor Telepon</label>
-                  <input type="text" name="phone" disabled={!editMode.contact} value={profileData.phone} onChange={handleChange} className={getInputClass(editMode.contact)} />
-                </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><FiMail className="text-gray-400"/> Email Akun (Terdaftar via Supabase)</label>
+                <input type="email" name="email" disabled={true} value={profileData.email} className={getInputClass(false)} />
+                <p className="text-xs text-gray-400 mt-2">Pembaruan email memerlukan verifikasi lebih lanjut dan saat ini dinonaktifkan.</p>
               </div>
 
+              {/* Form Ubah Password via Supabase */}
               <div className="border-t border-gray-100 pt-6">
                 <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><FiLock className="text-gray-400"/> Ubah Kata Sandi</h3>
-                <div className="space-y-4">
-                  <input type="password" disabled={!editMode.contact} placeholder={editMode.contact ? "Masukkan Password Saat Ini" : "••••••••"} className={getInputClass(editMode.contact) + " max-w-md"} />
-                  <div className="flex flex-col sm:flex-row gap-4 max-w-md">
-                    <input type="password" disabled={!editMode.contact} placeholder={editMode.contact ? "Password Baru" : "••••••••"} className={getInputClass(editMode.contact)} />
-                  </div>
+                <div className="space-y-4 max-w-md">
+                  <input 
+                    type="password" 
+                    name="newPassword"
+                    disabled={!editMode.contact} 
+                    value={passwords.newPassword}
+                    onChange={handlePasswordChange}
+                    placeholder={editMode.contact ? "Masukkan Password Baru" : "••••••••"} 
+                    className={getInputClass(editMode.contact)} 
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Tombol Aksi Muncul Saat Mode Edit */}
             {editMode.contact && (
               <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100 animate-fadeIn">
                 <button 
                   onClick={() => toggleEdit('contact', false)} 
-                  className="px-6 py-2.5 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition-colors text-sm flex items-center gap-2 cursor-pointer"
+                  disabled={saving}
+                  className="px-6 py-2.5 rounded-xl font-bold text-gray-600 hover:bg-gray-100 transition-colors text-sm flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <FiX size={18}/> Batal
                 </button>
                 <button 
                   onClick={() => handleSaveSection('contact')} 
-                  className="px-6 py-2.5 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-200 transition-colors text-sm flex items-center gap-2 cursor-pointer"
+                  disabled={saving || !passwords.newPassword}
+                  className="px-6 py-2.5 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-200 transition-colors text-sm flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:bg-gray-400"
                 >
-                  <FiSave size={18}/> Simpan Keamanan
+                  {saving ? <FiRefreshCw className="animate-spin" size={18}/> : <FiSave size={18}/>}
+                  {saving ? 'Menyimpan...' : 'Simpan Keamanan'}
                 </button>
               </div>
             )}
@@ -262,19 +345,12 @@ export default function Settings() {
                 </div>
                 <ToggleSwitch active={notifState.jobMatch} onClick={() => setNotifState(p => ({...p, jobMatch: !p.jobMatch}))} />
               </div>
-              <div className="flex items-center justify-between pb-6 border-b border-gray-50">
+              <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-bold text-sm text-gray-900">Tips & saran karir mingguan</h4>
                   <p className="text-xs text-gray-500 mt-1 max-w-sm">Newsletter mingguan dengan tips karir dan optimasi CV.</p>
                 </div>
                 <ToggleSwitch active={notifState.tips} onClick={() => setNotifState(p => ({...p, tips: !p.tips}))} />
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-bold text-sm text-gray-900">Update fitur baru</h4>
-                  <p className="text-xs text-gray-500 mt-1 max-w-sm">Pemberitahuan saat ada pembaruan fitur di AI CV Reviewer.</p>
-                </div>
-                <ToggleSwitch active={notifState.updates} onClick={() => setNotifState(p => ({...p, updates: !p.updates}))} />
               </div>
             </div>
           </div>
@@ -282,60 +358,22 @@ export default function Settings() {
         </div>
 
         {/* ========================================== */}
-        {/* KOLOM KANAN: WIDGET KOSONG (Dipindah ke atas) */}
+        {/* KOLOM KANAN: WIDGET WIDGET SAMPING */}
         {/* ========================================== */}
         <div className="lg:w-1/3 space-y-6">
           
-          {/* Achievement */}
-          <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-900 mb-5">Achievement</h3>
-            <div className="space-y-4">
-              <div className="flex gap-4 items-center bg-green-50/50 border border-green-100 p-3 rounded-2xl">
-                <div className="w-10 h-10 bg-green-500 text-white rounded-xl flex items-center justify-center shrink-0"><FiCheckCircle size={20}/></div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-gray-900">First Scan</p>
-                  <p className="text-[10px] text-gray-500">CV pertama dianalisis</p>
-                </div>
-                <FiCheckCircle className="text-green-500 shrink-0"/>
-              </div>
-              <div className="flex gap-4 items-center bg-green-50/50 border border-green-100 p-3 rounded-2xl">
-                <div className="w-10 h-10 bg-green-500 text-white rounded-xl flex items-center justify-center shrink-0"><FiTrendingUp size={20}/></div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-gray-900">Score Up</p>
-                  <p className="text-[10px] text-gray-500">Skor naik 10+ poin</p>
-                </div>
-                <FiCheckCircle className="text-green-500 shrink-0"/>
-              </div>
-              <div className="flex gap-4 items-center bg-green-50/50 border border-green-100 p-3 rounded-2xl">
-                <div className="w-10 h-10 bg-green-500 text-white rounded-xl flex items-center justify-center shrink-0"><FiFileText size={20}/></div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-gray-900">CV Optimized</p>
-                  <p className="text-[10px] text-gray-500">Terapkan 3+ saran AI</p>
-                </div>
-                <FiCheckCircle className="text-green-500 shrink-0"/>
-              </div>
-              <div className="flex gap-4 items-center bg-gray-50 border border-gray-100 p-3 rounded-2xl opacity-60">
-                <div className="w-10 h-10 bg-gray-300 text-white rounded-xl flex items-center justify-center shrink-0"><FiBriefcase size={20}/></div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-gray-900">Job Hunter</p>
-                  <p className="text-[10px] text-gray-500">Lihat 5+ detail lowongan</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Banner Promo Ungu */}
           <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
              <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full translate-x-1/3 -translate-y-1/3"></div>
              <BsStars size={28} className="mb-4 text-indigo-200 relative z-10" />
              <h3 className="font-bold text-lg mb-2 relative z-10">Analisis CV Baru</h3>
              <p className="text-xs text-indigo-100 mb-6 leading-relaxed relative z-10">
-               Coba posisi berbeda untuk melihat skor kecocokan yang baru.
+               Coba posisi berbeda untuk melihat skor kecocokan yang baru dan dapatkan rekomendasi pekerjaan instan.
              </p>
              <button onClick={() => navigate('/analisis-baru')} className="bg-white text-indigo-600 font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-gray-50 transition-colors relative z-10 flex items-center gap-2 shadow-sm cursor-pointer">
                Mulai Analisis <FiArrowRight />
              </button>
           </div>
+
         </div>
 
       </div>

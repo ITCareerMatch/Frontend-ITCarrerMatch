@@ -137,7 +137,10 @@ export async function fetchAllJobs(params = {}) {
   });
   const result = await response.json().catch(() => null);
   if (!response.ok) throw new Error(result?.message || `Gagal mengambil daftar lowongan (HTTP ${response.status})`);
-  return { jobs: result.data, pagination: result.pagination };
+  return { 
+    jobs: result.data,
+    pagination: result.meta || result.pagination 
+  };
 }
 
 export async function fetchJobDetail(jobId) {

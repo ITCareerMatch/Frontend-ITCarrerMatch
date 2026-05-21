@@ -30,7 +30,7 @@ export default function Register() {
         email,
         password,
         options: {
-          data: { full_name: name, gender }
+          data: { full_name: name, gender: gender }
         }
       });
 

@@ -11,21 +11,13 @@ export default function NewAnalysis() {
   const navigate = useNavigate();
   const token = localStorage.getItem('access_token');
 
-  // State untuk Tab (Upload vs Manual)
   const [activeTab, setActiveTab] = useState('upload');
-
-  // State untuk file upload
   const [file, setFile] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState('');
   const [taskId, setTaskId] = useState(null);
-
-  // State untuk history
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
-
-  // Polling interval
-  const [pollingInterval, setPollingInterval] = useState(null);
 
   // Fetch analysis history on mount
   useEffect(() => {
@@ -48,29 +40,43 @@ export default function NewAnalysis() {
     fetchHistory();
   }, [token, navigate]);
 
-  // Handle file change
+  // Handle file change dengan Validasi 1MB
   const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      // Validasi ukuran maksimal 1MB (1024 * 1024 bytes)
+      if (selectedFile.size > 1024 * 1024) {
+        setError('Ukuran file maksimal adalah 1MB untuk menghemat beban server.');
+        setFile(null);
+        return;
+      }
+      setFile(selectedFile);
       setError('');
     }
   };
 
-  // Poll for analysis status
+  // Poll for analysis status (Diperbaiki: menggunakan local variable intervalId)
   useEffect(() => {
     if (!taskId || !token) return;
+
+    let intervalId;
 
     const poll = async () => {
       try {
         const result = await checkCVStatus(token, taskId);
 
         if (result.status === 'completed') {
-          clearInterval(pollingInterval);
+          clearInterval(intervalId);
           setIsAnalyzing(false);
           setTaskId(null);
-          navigate('/hasil-analisis', { state: { analysisId: result.analysis_id } });
+          
+          // Ambil ID dari respons backend (bisa di result.data.id atau result.analysis_id)
+          const analysisId = result.data?.id || result.data?.analysis_id || result.analysis_id;
+          
+          // Navigate dan kirim state analysisId
+          navigate('/analisis-result', { state: { analysisId: analysisId } });
         } else if (result.status === 'failed') {
-          clearInterval(pollingInterval);
+          clearInterval(intervalId);
           setIsAnalyzing(false);
           setError('Analisis gagal. Silakan coba lagi.');
           setTaskId(null);
@@ -80,11 +86,12 @@ export default function NewAnalysis() {
       }
     };
 
-    const interval = setInterval(poll, 2000);
-    setPollingInterval(interval);
+    // Polling setiap 3 detik (menghindari spam request ke backend)
+    intervalId = setInterval(poll, 3000);
 
-    return () => clearInterval(interval);
-  }, [taskId, token, navigate, pollingInterval]);
+    // Cleanup function untuk mencegah memory leak saat unmount
+    return () => clearInterval(intervalId);
+  }, [taskId, token, navigate]);
 
   // Start analysis
   const handleStartAnalysis = async () => {
@@ -103,7 +110,7 @@ export default function NewAnalysis() {
 
     try {
       const result = await analyzeCV(token, file);
-      setTaskId(result.task_id);
+      setTaskId(result.task_id); // Akan memicu useEffect polling
     } catch (err) {
       setError(err.message || 'Gagal memulai analisis. Silakan coba lagi.');
       setIsAnalyzing(false);
@@ -127,13 +134,10 @@ export default function NewAnalysis() {
 
       <div className="flex flex-col lg:flex-row gap-8">
         
-        {/* ========================================== */}
         {/* KOLOM KIRI (Area Input Utama) */}
-        {/* ========================================== */}
         <div className="lg:w-2/3">
           <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm">
             
-            {/* Progress Bar Visual (Statis) */}
             <div className="flex items-center justify-between mb-8 relative">
               <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-100 -z-10 -translate-y-1/2"></div>
               <div className="flex items-center gap-2 bg-white pr-4">
@@ -169,7 +173,6 @@ export default function NewAnalysis() {
             {/* Konten Tab */}
             <div className="mb-8">
               {activeTab === 'upload' ? (
-                /* AREA DRAG & DROP */
                 <div>
                   <label className="border-2 border-dashed border-gray-300 rounded-2xl p-12 flex flex-col items-center justify-center text-center hover:bg-indigo-50/50 hover:border-indigo-300 transition-colors cursor-pointer group block">
                     <input
@@ -196,14 +199,13 @@ export default function NewAnalysis() {
                         <div className="flex gap-3 text-xs font-semibold text-gray-400">
                           <span className="bg-gray-100 px-3 py-1 rounded-md">PDF</span>
                           <span className="bg-gray-100 px-3 py-1 rounded-md">DOCX</span>
-                          <span className="bg-gray-100 px-3 py-1 rounded-md">Maks 5MB</span>
+                          <span className="bg-gray-100 px-3 py-1 rounded-md">Maks 1MB</span>
                         </div>
                       </>
                     )}
                   </label>
                 </div>
               ) : (
-                /* AREA ISI MANUAL */
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-bold text-gray-900 mb-2">Pengalaman Kerja</label>
@@ -231,7 +233,6 @@ export default function NewAnalysis() {
               </div>
             )}
 
-            {/* Tombol Mulai Analisis */}
             <button
               onClick={handleStartAnalysis}
               disabled={isAnalyzing || !file}
@@ -250,12 +251,8 @@ export default function NewAnalysis() {
           </div>
         </div>
 
-        {/* ========================================== */}
         {/* KOLOM KANAN (Widget Tambahan) */}
-        {/* ========================================== */}
         <div className="lg:w-1/3 space-y-6">
-          
-          {/* Scan Terakhir */}
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
             <h3 className="font-bold text-gray-900 mb-1">Scan Terakhir</h3>
             <p className="text-xs text-gray-500 mb-5">Klik untuk lihat hasil analisis</p>
@@ -267,7 +264,7 @@ export default function NewAnalysis() {
                 history.slice(0, 3).map((scan, idx) => (
                   <div
                     key={idx}
-                    onClick={() => navigate(`/hasil-analisis`, { state: { analysisId: scan.id } })}
+                    onClick={() => navigate(`/analisis-result`, { state: { analysisId: scan.id } })}
                     className="flex items-center justify-between group cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
@@ -288,7 +285,6 @@ export default function NewAnalysis() {
             </div>
           </div>
 
-          {/* Banner Real-time Scan */}
           <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-3xl text-white shadow-md relative overflow-hidden">
              <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
              <h3 className="font-bold mb-4 relative z-10">Real-time Scan</h3>
@@ -300,16 +296,13 @@ export default function NewAnalysis() {
              </ul>
           </div>
 
-          {/* Tips */}
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
             <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><BsLightbulbFill className="text-yellow-500"/> Tips</h3>
             <ul className="space-y-3 text-sm text-gray-600">
               <li className="flex items-start gap-2"><FiCheckCircle className="text-green-500 shrink-0 mt-0.5"/> <span>Pastikan CV Anda menggunakan format yang bersih (ATS-Friendly) agar mudah dibaca AI.</span></li>
-              <li className="flex items-start gap-2"><FiCheckCircle className="text-green-500 shrink-0 mt-0.5"/> <span>Bandingkan skor Anda dari waktu ke waktu di menu Riwayat.</span></li>
             </ul>
           </div>
 
-          {/* Data Aman */}
           <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl flex items-start gap-3">
             <FiShield className="text-indigo-600 shrink-0 mt-0.5" size={20} />
             <div>
