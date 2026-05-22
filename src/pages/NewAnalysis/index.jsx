@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FiUploadCloud, FiEdit2, FiRefreshCw, FiZap,
-  FiCheckCircle, FiShield, FiFileText, FiTarget, FiBarChart2, FiBriefcase, FiClock, FiPlus,
+  FiCheckCircle, FiShield, FiFileText, FiTarget, FiBriefcase
 } from 'react-icons/fi';
 import { BsStars, BsLightbulbFill } from 'react-icons/bs';
 import { analyzeCV, checkCVStatus, fetchAnalysisHistory } from '../../services/api';
@@ -13,6 +13,11 @@ export default function NewAnalysis() {
 
   const [activeTab, setActiveTab] = useState('upload');
   const [file, setFile] = useState(null);
+  
+  // State baru untuk input manual
+  const [pengalaman, setPengalaman] = useState('');
+  const [keahlian, setKeahlian] = useState('');
+
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState('');
   const [taskId, setTaskId] = useState(null);
@@ -44,7 +49,6 @@ export default function NewAnalysis() {
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
-      // Validasi ukuran maksimal 1MB (1024 * 1024 bytes)
       if (selectedFile.size > 1024 * 1024) {
         setError('Ukuran file maksimal adalah 1MB untuk menghemat beban server.');
         setFile(null);
@@ -55,7 +59,7 @@ export default function NewAnalysis() {
     }
   };
 
-  // Poll for analysis status (Diperbaiki: menggunakan local variable intervalId)
+  // Poll for analysis status
   useEffect(() => {
     if (!taskId || !token) return;
 
@@ -70,10 +74,7 @@ export default function NewAnalysis() {
           setIsAnalyzing(false);
           setTaskId(null);
           
-          // Ambil ID dari respons backend (bisa di result.data.id atau result.analysis_id)
           const analysisId = result.data?.id || result.data?.analysis_id || result.analysis_id;
-          
-          // Navigate dan kirim state analysisId
           navigate('/analisis-result', { state: { analysisId: analysisId } });
         } else if (result.status === 'failed') {
           clearInterval(intervalId);
@@ -86,17 +87,20 @@ export default function NewAnalysis() {
       }
     };
 
-    // Polling setiap 3 detik (menghindari spam request ke backend)
     intervalId = setInterval(poll, 3000);
-
-    // Cleanup function untuk mencegah memory leak saat unmount
     return () => clearInterval(intervalId);
   }, [taskId, token, navigate]);
 
   // Start analysis
   const handleStartAnalysis = async () => {
-    if (!file) {
+    // Validasi berdasarkan Tab Aktif
+    if (activeTab === 'upload' && !file) {
       setError('Mohon pilih file CV terlebih dahulu');
+      return;
+    }
+
+    if (activeTab === 'manual' && (pengalaman.trim().length < 5 || keahlian.trim().length < 5)) {
+      setError('Mohon lengkapi data pengalaman dan keahlian Anda.');
       return;
     }
 
@@ -109,14 +113,29 @@ export default function NewAnalysis() {
     setError('');
 
     try {
-      const result = await analyzeCV(token, file);
-      setTaskId(result.task_id); // Akan memicu useEffect polling
+      let result;
+      if (activeTab === 'upload') {
+        // Panggil analyzeCV dengan file (Manual dikosongkan)
+        result = await analyzeCV(token, file, null);
+      } else {
+        // Gabungkan teks manual
+        const manualData = `Pengalaman Kerja:\n${pengalaman}\n\nDaftar Keahlian:\n${keahlian}`;
+        // Panggil analyzeCV dengan manualData (File dikosongkan)
+        result = await analyzeCV(token, null, manualData);
+      }
+      
+      setTaskId(result.task_id);
     } catch (err) {
       setError(err.message || 'Gagal memulai analisis. Silakan coba lagi.');
       setIsAnalyzing(false);
       console.error('Analysis error:', err);
     }
   };
+
+  // Logika pengecekan validasi form untuk mematikan tombol
+  const isFormValid = activeTab === 'upload' 
+    ? !!file 
+    : (pengalaman.trim().length >= 5 && keahlian.trim().length >= 5);
 
   return (
     <div className="max-w-7xl mx-auto pb-12 font-sans text-gray-800">
@@ -157,13 +176,13 @@ export default function NewAnalysis() {
             {/* Toggle Tabs */}
             <div className="flex bg-gray-50 p-1.5 rounded-xl border border-gray-200 mb-8">
               <button 
-                onClick={() => setActiveTab('upload')} 
+                onClick={() => { setActiveTab('upload'); setError(''); }} 
                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold transition-all ${activeTab === 'upload' ? 'bg-white text-indigo-600 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
               >
                 <FiUploadCloud size={18}/> Unggah File
               </button>
               <button 
-                onClick={() => setActiveTab('manual')} 
+                onClick={() => { setActiveTab('manual'); setError(''); }} 
                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold transition-all ${activeTab === 'manual' ? 'bg-white text-indigo-600 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
               >
                 <FiEdit2 size={18}/> Isi Manual
@@ -211,6 +230,8 @@ export default function NewAnalysis() {
                     <label className="block text-sm font-bold text-gray-900 mb-2">Pengalaman Kerja</label>
                     <textarea
                       rows="5"
+                      value={pengalaman}
+                      onChange={(e) => setPengalaman(e.target.value)}
                       placeholder="Contoh: 3 tahun sebagai Frontend Developer di PT ABC..."
                       className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-gray-50 focus:bg-white transition-colors"
                     ></textarea>
@@ -219,6 +240,8 @@ export default function NewAnalysis() {
                     <label className="block text-sm font-bold text-gray-900 mb-2">Daftar Keahlian</label>
                     <textarea
                       rows="3"
+                      value={keahlian}
+                      onChange={(e) => setKeahlian(e.target.value)}
                       placeholder="Contoh: React, TypeScript, Node.js, Figma..."
                       className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-gray-50 focus:bg-white transition-colors"
                     ></textarea>
@@ -235,8 +258,8 @@ export default function NewAnalysis() {
 
             <button
               onClick={handleStartAnalysis}
-              disabled={isAnalyzing || !file}
-              className={`w-full font-bold py-4 rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 ${isAnalyzing || !file ? 'bg-indigo-300 text-white cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-700'}`}
+              disabled={isAnalyzing || !isFormValid}
+              className={`w-full font-bold py-4 rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 ${isAnalyzing || !isFormValid ? 'bg-indigo-300 text-white cursor-not-allowed shadow-none' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200'}`}
             >
               {isAnalyzing ? (
                 <><FiRefreshCw className="animate-spin" size={20} /> Memproses Analisis AI...{taskId && ` (ID: ${taskId})`}</>
@@ -272,11 +295,11 @@ export default function NewAnalysis() {
                         <FiTarget size={18}/>
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{scan.job_title || 'Analisis CV'}</p>
-                        <p className="text-xs text-gray-500">{new Date(scan.created_at).toLocaleDateString('id-ID')} · Skor: {scan.score || scan.match_score || 'N/A'}</p>
+                        <p className="text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1">{scan.job_title || 'Analisis CV'}</p>
+                        <p className="text-xs text-gray-500">{new Date(scan.created_at).toLocaleDateString('id-ID')} · Skor: {Math.round(scan.score || scan.match_score || 0)}</p>
                       </div>
                     </div>
-                    <FiRefreshCw className="text-gray-300 group-hover:text-indigo-600 transition-colors" />
+                    <FiRefreshCw className="text-gray-300 group-hover:text-indigo-600 transition-colors shrink-0" />
                   </div>
                 ))
               ) : (
@@ -302,15 +325,6 @@ export default function NewAnalysis() {
               <li className="flex items-start gap-2"><FiCheckCircle className="text-green-500 shrink-0 mt-0.5"/> <span>Pastikan CV Anda menggunakan format yang bersih (ATS-Friendly) agar mudah dibaca AI.</span></li>
             </ul>
           </div>
-
-          <div className="bg-gray-50 border border-gray-200 p-5 rounded-2xl flex items-start gap-3">
-            <FiShield className="text-indigo-600 shrink-0 mt-0.5" size={20} />
-            <div>
-              <h4 className="text-sm font-bold text-gray-900 mb-1">Data Aman</h4>
-              <p className="text-xs text-gray-500 leading-relaxed">Semua dokumen CV dienkripsi dan tidak akan dibagikan ke pihak ketiga tanpa izin Anda.</p>
-            </div>
-          </div>
-
         </div>
       </div>
     </div>

@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { 
   FiMail, FiLock, FiBell, FiSave, FiCheckCircle, 
   FiArrowRight, FiTrendingUp, FiFileText, 
-  FiCamera, FiEdit2, FiX, FiRefreshCw, FiUser
+  FiCamera, FiEdit2, FiX, FiRefreshCw, FiUser,
+  FiCalendar, FiHash
 } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
 import { useNavigate } from 'react-router-dom';
 
 // Import fungsi API & Supabase
 import { fetchUserProfile, updateUserProfile } from '../../services/api';
-import { supabase } from '../../lib/supabase'; // Pastikan path ini benar sesuai struktur Anda
+import { supabase } from '../../lib/supabase';
 
 // --- KOMPONEN BANTUAN ---
 const ToggleSwitch = ({ active, onClick }) => (
@@ -30,11 +31,13 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // --- STATE UNTUK DATA FORM (Disesuaikan dengan Backend Anda) ---
+  // --- STATE UNTUK DATA FORM ---
   const [profileData, setProfileData] = useState({
+    id: '',
     name: '',
     email: '',
-    gender: '' // Hanya 'male', 'female', atau 'other' sesuai Swagger Backend
+    gender: '',
+    created_at: ''
   });
 
   // State khusus password via Supabase
@@ -65,11 +68,13 @@ export default function Settings() {
       try {
         const data = await fetchUserProfile(token);
         
-        // Mengisi state hanya dengan data yang didukung Backend
+        // Mengisi state dengan data yang didukung Backend
         setProfileData({
+          id: data?.id || '',
           name: data?.name || '',
           email: data?.email || '',
-          gender: data?.gender || ''
+          gender: data?.gender || '',
+          created_at: data?.created_at || ''
         });
       } catch (err) {
         console.error("Gagal memuat profil:", err);
@@ -106,7 +111,6 @@ export default function Settings() {
 
     try {
       if (section === 'profile') {
-        // Hanya kirim field yang tervalidasi oleh backend (name, gender)
         const payload = {
           name: profileData.name,
           gender: profileData.gender
@@ -114,9 +118,7 @@ export default function Settings() {
         await updateUserProfile(token, payload);
         alert('Data Profil berhasil diperbarui!');
       } 
-      
       else if (section === 'contact') {
-        // Jika user mengisi password baru, update via Supabase SDK
         if (passwords.newPassword) {
           if (passwords.newPassword.length < 6) {
             throw new Error('Password minimal 6 karakter.');
@@ -149,6 +151,13 @@ export default function Settings() {
       : 'border-transparent bg-gray-50 text-gray-600 cursor-not-allowed'
   }`;
 
+  // Helper untuk format tanggal
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    const options = { day: 'numeric', month: 'long', year: 'numeric' };
+    return new Date(dateString).toLocaleDateString('id-ID', options);
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-20">
@@ -157,14 +166,13 @@ export default function Settings() {
       </div>
     );
   }
+
   const displayName = profileData.name || (profileData.email ? profileData.email.split('@')[0] : 'Pengguna Terdaftar');
-  // Generate Inisial Avatar
   const avatarInitials = displayName.substring(0, 2).toUpperCase();
 
   return (
     <div className="max-w-6xl mx-auto pb-12 font-sans text-gray-800">
       
-      {/* Error Banner */}
       {error && (
         <div className="mb-6 p-4 bg-red-50 text-red-600 border border-red-200 rounded-2xl text-sm font-medium">
           {error}
@@ -176,8 +184,6 @@ export default function Settings() {
         <div className="h-32 bg-gradient-to-r from-orange-500 to-red-500 rounded-t-3xl w-full"></div>
         
         <div className="p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
-          
-          {/* Avatar */}
           <div className="flex flex-col md:flex-row items-start md:items-end gap-4 mt--12">
             <div className="absolute -top-12 left-6 md:left-8 w-24 h-24 bg-indigo-600 text-white rounded-2xl border-4 border-white flex items-center justify-center text-3xl font-bold shadow-md group cursor-pointer overflow-hidden">
               <span>{avatarInitials}</span>
@@ -187,11 +193,18 @@ export default function Settings() {
               </div>
             </div>
             <div className="mt-14 md:mt-0 md:ml-32">
-              <h1 className="text-2xl font-bold text-gray-900 mb-1">{displayName}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 mb-1 capitalize">{displayName}</h1>
               <p className="text-sm text-gray-500">
                 {profileData.email}
               </p>
             </div>
+          </div>
+
+          <div className="flex gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+             <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-2 text-center flex flex-col justify-center">
+               <span className="text-xs font-bold text-blue-600">Member Sejak</span>
+               <span className="text-sm font-semibold text-gray-700">{formatDate(profileData.created_at)}</span>
+             </div>
           </div>
         </div>
       </div>
@@ -241,6 +254,18 @@ export default function Settings() {
                   <option value="O">Lainnya</option>
                 </select>
               </div>
+
+              {/* Tambahan Info Read-Only */}
+              <div className="grid md:grid-cols-2 gap-5 pt-4 border-t border-gray-50">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><FiCalendar className="text-gray-400"/> Tanggal Bergabung</label>
+                  <input type="text" disabled value={formatDate(profileData.created_at)} className={getInputClass(false)} />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><FiHash className="text-gray-400"/> ID Akun</label>
+                  <input type="text" disabled value={profileData.id} className={`${getInputClass(false)} text-xs`} />
+                </div>
+              </div>
             </div>
 
             {/* Tombol Aksi Muncul Saat Mode Edit */}
@@ -284,7 +309,7 @@ export default function Settings() {
             
             <div className="space-y-5">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><FiMail className="text-gray-400"/> Email Akun (Terdaftar via Supabase)</label>
+                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><FiMail className="text-gray-400"/> Email Akun</label>
                 <input type="email" name="email" disabled={true} value={profileData.email} className={getInputClass(false)} />
                 <p className="text-xs text-gray-400 mt-2">Pembaruan email memerlukan verifikasi lebih lanjut dan saat ini dinonaktifkan.</p>
               </div>

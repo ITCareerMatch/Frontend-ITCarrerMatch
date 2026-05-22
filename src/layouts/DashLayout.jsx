@@ -86,9 +86,9 @@ export default function DashLayout() {
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 shadow-xl lg:shadow-none transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col`}>
-        <div className="h-16 flex items-center px-6 border-b border-gray-100 justify-between">
-          <div className="flex items-center gap-2 font-bold text-lg text-gray-900 cursor-pointer" onClick={() => navigate('/dashboard')}>
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-70 bg-white border-r border-gray-200 shadow-xl lg:shadow-none transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col`}>
+        <div className="h-19 flex items-center px-6 border-b border-gray-100 justify-between">
+          <div className="flex items-center gap-2 font-bold text-lg sm:text-xl text-gray-900 cursor-pointer" onClick={() => navigate('/')}>
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white"><BsStars size={16} /></div>
             ITCareerMatch
           </div>
@@ -120,14 +120,14 @@ export default function DashLayout() {
 
       {/* Konten Utama */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 sticky top-0 z-30">
+        <header className="h-19 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 sticky top-0 z-30">
           
           {/* SISI KIRI: Judul Halaman yang sedang dibuka */}
           <div className="flex items-center gap-4">
             <button className="lg:hidden p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg" onClick={() => setIsSidebarOpen(true)}>
               <FiMenu size={24} />
             </button>
-            <h1 className="font-bold text-gray-900 text-lg">
+            <h1 className="font-bold text-gray-900 text-lg sm:text-xl">
               {getPageTitle()}
             </h1>
           </div>
@@ -140,8 +140,8 @@ export default function DashLayout() {
             
             <div className="h-6 w-px bg-gray-200"></div>
             
-            <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 hover:bg-gray-50 p-1 pr-3 rounded-full border border-transparent hover:border-gray-200 transition-all">
-              <div className="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm">
+            <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 hover:bg-gray-50 p-1 pr-1 rounded-full border border-transparent hover:border-gray-200 transition-all cursor-pointer">
+              <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm">
                 {userProfile.initials}
               </div>
             </button>
