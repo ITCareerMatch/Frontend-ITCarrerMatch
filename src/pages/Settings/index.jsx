@@ -249,9 +249,9 @@ export default function Settings() {
                   className={getInputClass(editMode.profile)}
                 >
                   <option value="">Pilih Jenis Kelamin</option>
-                  <option value="L">Laki-Laki</option>
-                  <option value="P">Perempuan</option>
-                  <option value="O">Lainnya</option>
+                  <option value="male">Laki-Laki</option>
+                  <option value="female">Perempuan</option>
+                  <option value="other">Lainnya</option>
                 </select>
               </div>
 
