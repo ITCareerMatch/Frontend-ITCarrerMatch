@@ -30,6 +30,22 @@ export async function updateUserProfile(token, profileData) {
   return result.data;
 }
 
+export async function deleteUserProfile(token) {
+  const response = await fetch(`${API_BASE_URL}/api/v1/user/profile`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+  });
+  
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.message || 'Gagal menghapus akun');
+  }
+  return result;
+}
+
 // PERBAIKAN: Tidak perlu parameter page & limit (sesuai Swagger terbaru)
 export async function fetchJobRecommendations(token) {
   if (!token) throw new Error('Missing access token');

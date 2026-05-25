@@ -3,13 +3,13 @@ import {
   FiMail, FiLock, FiBell, FiSave, FiCheckCircle, 
   FiArrowRight, FiTrendingUp, FiFileText, 
   FiCamera, FiEdit2, FiX, FiRefreshCw, FiUser,
-  FiCalendar, FiHash
+  FiCalendar, FiHash, FiTrash2, FiAlertTriangle
 } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
 import { useNavigate } from 'react-router-dom';
 
 // Import fungsi API & Supabase
-import { fetchUserProfile, updateUserProfile } from '../../services/api';
+import { fetchUserProfile, updateUserProfile, deleteUserProfile } from '../../services/api';
 import { supabase } from '../../lib/supabase';
 
 // --- KOMPONEN BANTUAN ---
@@ -31,6 +31,10 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  // --- STATE UNTUK HAPUS AKUN ---
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // --- STATE UNTUK DATA FORM ---
   const [profileData, setProfileData] = useState({
     id: '',
@@ -40,7 +44,6 @@ export default function Settings() {
     created_at: ''
   });
 
-  // State khusus password via Supabase
   const [passwords, setPasswords] = useState({
     newPassword: ''
   });
@@ -51,7 +54,6 @@ export default function Settings() {
     updates: false
   });
 
-  // --- STATE UNTUK MODE EDIT PER BAGIAN ---
   const [editMode, setEditMode] = useState({
     profile: false,
     contact: false
@@ -68,7 +70,6 @@ export default function Settings() {
       try {
         const data = await fetchUserProfile(token);
         
-        // Mengisi state dengan data yang didukung Backend
         setProfileData({
           id: data?.id || '',
           name: data?.name || '',
@@ -101,7 +102,7 @@ export default function Settings() {
   const toggleEdit = (section, isEditing) => {
     setEditMode(prev => ({ ...prev, [section]: isEditing }));
     if (!isEditing && section === 'contact') {
-      setPasswords({ newPassword: '' }); // Bersihkan input password saat batal
+      setPasswords({ newPassword: '' }); 
     }
   };
 
@@ -145,13 +146,34 @@ export default function Settings() {
     }
   };
 
+  // --- HANDLER HAPUS AKUN ---
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      // 1. Hapus data profil di backend
+      await deleteUserProfile(token);
+      
+      // 2. Hapus sesi dan bersihkan storage lokal
+      await supabase.auth.signOut();
+      localStorage.removeItem('access_token');
+      
+      // 3. Arahkan ke beranda dengan pesan sukses
+      alert('Akun dan semua data Anda telah berhasil dihapus secara permanen.');
+      navigate('/');
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menghapus akun: ' + err.message);
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
+
   const getInputClass = (isEditing) => `w-full px-4 py-3 border rounded-xl outline-none text-sm transition-colors ${
     isEditing 
       ? 'border-gray-300 focus:ring-2 focus:ring-blue-500 bg-white text-gray-900' 
       : 'border-transparent bg-gray-50 text-gray-600 cursor-not-allowed'
   }`;
 
-  // Helper untuk format tanggal
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     const options = { day: 'numeric', month: 'long', year: 'numeric' };
@@ -255,7 +277,6 @@ export default function Settings() {
                 </select>
               </div>
 
-              {/* Tambahan Info Read-Only */}
               <div className="grid md:grid-cols-2 gap-5 pt-4 border-t border-gray-50">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><FiCalendar className="text-gray-400"/> Tanggal Bergabung</label>
@@ -268,7 +289,6 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* Tombol Aksi Muncul Saat Mode Edit */}
             {editMode.profile && (
               <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-100 animate-fadeIn">
                 <button 
@@ -309,12 +329,11 @@ export default function Settings() {
             
             <div className="space-y-5">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><FiMail className="text-gray-400"/> Email Akun</label>
+                <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2"><FiMail className="text-gray-400"/> Email Akun (Terdaftar via Supabase)</label>
                 <input type="email" name="email" disabled={true} value={profileData.email} className={getInputClass(false)} />
                 <p className="text-xs text-gray-400 mt-2">Pembaruan email memerlukan verifikasi lebih lanjut dan saat ini dinonaktifkan.</p>
               </div>
 
-              {/* Form Ubah Password via Supabase */}
               <div className="border-t border-gray-100 pt-6">
                 <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><FiLock className="text-gray-400"/> Ubah Kata Sandi</h3>
                 <div className="space-y-4 max-w-md">
@@ -380,13 +399,33 @@ export default function Settings() {
             </div>
           </div>
 
+          {/* SECTION 4: DANGER ZONE (HAPUS AKUN) */}
+          <div className="bg-red-50 rounded-3xl p-6 md:p-8 border border-red-100 shadow-sm mt-8">
+            <div className="flex items-start gap-4">
+              <div className="bg-red-100 p-3 rounded-full text-red-600 shrink-0">
+                <FiAlertTriangle size={24} />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-lg font-bold text-red-700 mb-2">Zona Bahaya</h2>
+                <p className="text-sm text-red-600 mb-6 leading-relaxed">
+                  Tindakan ini tidak dapat dibatalkan. Semua data profil, riwayat analisis CV, dan rekomendasi pekerjaan Anda akan dihapus secara permanen dari sistem kami.
+                </p>
+                <button 
+                  onClick={() => setShowDeleteModal(true)}
+                  className="bg-white text-red-600 font-bold px-5 py-2.5 rounded-xl border border-red-200 hover:bg-red-600 hover:text-white transition-colors text-sm flex items-center gap-2 cursor-pointer shadow-sm"
+                >
+                  <FiTrash2 size={16}/> Hapus Akun Saya
+                </button>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         {/* ========================================== */}
-        {/* KOLOM KANAN: WIDGET WIDGET SAMPING */}
+        {/* KOLOM KANAN: WIDGET SAMPING */}
         {/* ========================================== */}
         <div className="lg:w-1/3 space-y-6">
-          
           <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
              <div className="absolute top-0 right-0 w-40 h-40 bg-white opacity-10 rounded-full translate-x-1/3 -translate-y-1/3"></div>
              <BsStars size={28} className="mb-4 text-indigo-200 relative z-10" />
@@ -398,10 +437,43 @@ export default function Settings() {
                Mulai Analisis <FiArrowRight />
              </button>
           </div>
-
         </div>
 
       </div>
+
+      {/* --- MODAL KONFIRMASI HAPUS AKUN --- */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
+            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6 mx-auto">
+              <FiAlertTriangle size={32} />
+            </div>
+            
+            <h3 className="text-xl font-bold text-gray-900 text-center mb-2">Hapus Akun Permanen?</h3>
+            <p className="text-sm text-gray-500 text-center mb-8 leading-relaxed">
+              Anda yakin ingin menghapus akun ini? Segala data yang berkaitan dengan akun <strong>{profileData.email}</strong> tidak akan bisa dipulihkan kembali.
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
+                className="w-full bg-red-600 text-white font-bold py-3.5 rounded-xl hover:bg-red-700 transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? <FiRefreshCw className="animate-spin" size={18}/> : <FiTrash2 size={18}/>}
+                {isDeleting ? 'Menghapus Akun...' : 'Ya, Hapus Permanen'}
+              </button>
+              <button 
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                className="w-full bg-white text-gray-700 font-bold py-3.5 rounded-xl hover:bg-gray-50 border border-gray-200 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style dangerouslySetInnerHTML={{__html: `
         .animate-fadeIn { animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }

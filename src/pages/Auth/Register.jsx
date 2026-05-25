@@ -173,8 +173,8 @@ export default function Register() {
               <select required value={gender} onChange={(e) => setGender(e.target.value)} className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-4 pr-10 text-sm text-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-pointer">
                 <option disabled value="">Pilih Gender</option>
                 <option value="other">Lainnya</option>
-                <option value="male">Pria</option>
-                <option value="female">Wanita</option>
+                <option value="male">Laki-Laki</option>
+                <option value="female">Perempuan</option>
               </select>
             </div>
 
