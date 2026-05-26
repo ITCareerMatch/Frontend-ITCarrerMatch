@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   FiArrowLeft, FiMapPin, FiBriefcase, FiDollarSign, FiClock,
   FiExternalLink, FiCheckCircle, FiXCircle, FiChevronDown,
-  FiChevronRight, FiTrendingUp, FiInfo, FiMap
+  FiChevronRight, FiTrendingUp, FiInfo, FiMap, FiRefreshCcw
 } from 'react-icons/fi';
 import { BsStars, BsLightbulbFill } from 'react-icons/bs';
 import { fetchJobDetail } from '../../services/api';
@@ -12,24 +12,26 @@ export default function JobDetail() {
   const navigate = useNavigate();
   const params = useParams();
   
-  // DETEKSI ID OTOMATIS: Mencari param bernama id, jobId, job_id, atau apapun parameter pertamanya
+  // DETEKSI ID OTOMATIS
   const jobId = params.id || params.jobId || params.job_id || Object.values(params)[0];
   
   const [openInsight, setOpenInsight] = useState('ai');
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
-
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchJobAndAnalysis = async () => {
       try {
-        if (!jobId) throw new Error("ID tidak ditemukan");
+        if (!jobId) throw new Error("ID tidak ditemukan di URL");
 
-        const jobData = await fetchJobDetail(jobId);
+        const response = await fetchJobDetail(jobId);
+        
+        // PERBAIKAN FATAL: Ekstrak objek dari dalam "data"
+        const jobData = response?.data || response;
 
         if (!jobData || (!jobData.id && !jobData.title)) {
-          throw new Error("Pekerjaan tidak ditemukan");
+          throw new Error("Pekerjaan tidak ditemukan di server");
         }
 
         setJob({
@@ -98,6 +100,14 @@ export default function JobDetail() {
   const skillsGapped = job?.analysis?.skill_gap || [];
   const aiInsightText = job?.analysis?.ai_insight || "";
 
+  // Helper untuk format rentang usia agar tidak menampilkan "null - null tahun"
+  const renderAgeRange = () => {
+    if (job.min_age && job.max_age) return `${job.min_age} - ${job.max_age} tahun`;
+    if (job.min_age) return `Minimal ${job.min_age} tahun`;
+    if (job.max_age) return `Maksimal ${job.max_age} tahun`;
+    return 'Tidak ada batasan usia';
+  };
+
   return (
     <div className="max-w-7xl mx-auto pb-12 pt-8 px-4 sm:px-6 lg:px-8 font-sans text-gray-800 bg-gray-50/50 min-h-screen animate-fadeIn">
       
@@ -127,7 +137,12 @@ export default function JobDetail() {
               <span className="flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1.5 rounded-lg border border-green-100 font-bold">
                 <FiDollarSign /> {job?.salary_raw || 'Gaji Kompetitif'}
               </span>
-              <span className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100"><FiClock /> {job?.created_at ? new Date(job.created_at).toLocaleDateString('id-ID') : '-'}</span>
+              <span className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100"><FiClock /> Dipublikasikan: {job?.created_at ? new Date(job.created_at).toLocaleDateString('id-ID') : '-'}</span>
+              
+              {/* Tambahan Updated At */}
+              {job?.updated_at && job?.updated_at !== job?.created_at && (
+                <span className="flex items-center gap-1.5 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 text-blue-500"><FiRefreshCcw /> Diperbarui: {new Date(job.updated_at).toLocaleDateString('id-ID')}</span>
+              )}
             </div>
           </div>
         </div>
@@ -135,7 +150,7 @@ export default function JobDetail() {
           <button onClick={() => navigate('/editor')} className="bg-blue-600 text-white font-bold px-6 py-3.5 rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 cursor-pointer">
             <BsLightbulbFill /> Optimasi CV Dulu
           </button>
-          <button onClick={() => window.open(job?.application_link, '_blank')} className="bg-white text-gray-700 border border-gray-200 font-bold px-6 py-3.5 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+          <button onClick={() => window.open(job?.external_url, '_blank')} className="bg-white text-gray-700 border border-gray-200 font-bold px-6 py-3.5 rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm">
             Lamar Langsung <FiExternalLink />
           </button>
         </div>
@@ -152,10 +167,17 @@ export default function JobDetail() {
                 <h4 className="font-bold text-gray-900 mb-4 text-sm flex items-center gap-2"><FiInfo className="text-blue-500" /> Informasi Kandidat</h4>
                 <ul className="space-y-3 text-sm text-gray-600">
                   <li className="flex items-start gap-3"><FiCheckCircle className="text-green-500 shrink-0 mt-0.5"/> <span className="font-medium text-gray-900 w-24 shrink-0">Pendidikan</span> {job?.education_level || '-'}</li>
-                  <li className="flex items-start gap-3"><FiCheckCircle className="text-green-500 shrink-0 mt-0.5"/> <span className="font-medium text-gray-900 w-24 shrink-0">Rentang Usia</span> {job?.min_age} - {job?.max_age} tahun</li>
+                  {/* Pemanggilan Usia yang sudah disesuaikan untuk mengatasi null */}
+                  <li className="flex items-start gap-3"><FiCheckCircle className="text-green-500 shrink-0 mt-0.5"/> <span className="font-medium text-gray-900 w-24 shrink-0">Rentang Usia</span> {renderAgeRange()}</li>
                   <li className="flex items-start gap-3 capitalize"><FiCheckCircle className="text-green-500 shrink-0 mt-0.5"/> <span className="font-medium text-gray-900 w-24 shrink-0">Gender</span> {job?.gender_required === 'both' ? 'Pria & Wanita' : job?.gender_required || '-'}</li>
                   <li className="flex items-start gap-3"><FiMap className="text-blue-500 shrink-0 mt-0.5"/> <span className="font-medium text-gray-900 w-24 shrink-0">Lokasi Detail</span> {job?.location || 'Sesuai dengan kantor pusat'}</li>
                 </ul>
+                {job?.age_note && (
+                  <div className="mt-5 p-3.5 bg-blue-50 rounded-xl border border-blue-100 flex items-start gap-2 text-xs text-blue-700 leading-relaxed">
+                    <FiInfo size={16} className="shrink-0 mt-0.5" />
+                    <span><strong>Catatan Usia:</strong> {job.age_note}</span>
+                  </div>
+                )}
               </div>
               <div>
                 <h4 className="font-bold text-gray-900 mb-4 text-sm flex items-center gap-2"><FiCheckCircle className="text-blue-500" /> Skills Utama</h4>

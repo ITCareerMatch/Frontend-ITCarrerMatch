@@ -17,7 +17,8 @@ export default function DashLayout() {
   const [userProfile, setUserProfile] = useState({
     name: 'Memuat...',
     email: '',
-    initials: '..'
+    initials: '..',
+    avatar_url: ''
   });
 
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ export default function DashLayout() {
     if (location.pathname.includes('/editor')) return 'CV Editor';
     if (location.pathname.includes('/analisis-baru')) return 'Analisis Baru';
     if (location.pathname.includes('/daftar-lowongan')) return 'Daftar Lowongan';
+    if (location.pathname.includes('/detail')) return 'Detail Lowongan';
     if (location.pathname.includes('/pengaturan')) return 'Pengaturan';
     return 'Dashboard';
   };
@@ -54,11 +56,12 @@ export default function DashLayout() {
         setUserProfile({
           name: name,
           email: data?.email || '',
-          initials: name.substring(0, 2).toUpperCase()
+          initials: name.substring(0, 2).toUpperCase(),
+          avatar_url: data?.avatar_url || ''
         });
       // eslint-disable-next-line no-unused-vars
       } catch (error) {
-        setUserProfile({ name: 'Pengguna', email: '', initials: 'U' });
+        setUserProfile({ name: 'Pengguna', email: '', initials: 'U', avatar_url: '' });
       }
     };
     loadProfile();
@@ -144,7 +147,7 @@ export default function DashLayout() {
             
             <button onClick={() => setIsProfileOpen(!isProfileOpen)} className="flex items-center gap-2 hover:bg-gray-50 p-1 pr-1 rounded-full border border-transparent hover:border-gray-200 transition-all cursor-pointer">
               <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold text-sm">
-                {userProfile.initials}
+                {userProfile.avatar_url ? <img src={userProfile.avatar_url} alt="Avatar" className="w-full h-full object-cover rounded-full" /> : userProfile.initials}
               </div>
             </button>
 
@@ -152,7 +155,7 @@ export default function DashLayout() {
             {isProfileOpen && (
               <div className="absolute top-14 right-0 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 p-4 z-50 animate-fadeIn">
                 <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-50">
-                   <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">{userProfile.initials}</div>
+                   <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">{userProfile.avatar_url ? <img src={userProfile.avatar_url} alt="Avatar" className="w-full h-full object-cover rounded-full" /> : userProfile.initials}</div>
                    <div>
                      <p className="font-bold text-sm text-gray-900">{userProfile.name}</p>
                      <p className="text-[10px] text-gray-400 flex items-center gap-1"><FiMail size={10}/> {userProfile.email}</p>

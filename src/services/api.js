@@ -17,16 +17,21 @@ export async function fetchUserProfile(token) {
   return result.data;
 }
 
-export async function updateUserProfile(token, profileData) {
+export async function updateUserProfile(token, formData) {
   if (!token) throw new Error('Missing access token');
+
   const response = await fetch(`${API_BASE_URL}/api/v1/user/profile`, {
     method: 'PUT',
-    headers: buildHeaders(token),
-    body: JSON.stringify(profileData),
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: formData,
   });
+
   const result = await response.json().catch(() => null);
   if (!response.ok) throw new Error(result?.message || `Gagal memperbarui profil (HTTP ${response.status})`);
   if (!result || !result.success) throw new Error(result?.message || 'Respons pembaruan profil tidak berhasil');
+  
   return result.data;
 }
 

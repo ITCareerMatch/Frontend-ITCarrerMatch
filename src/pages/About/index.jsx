@@ -175,9 +175,9 @@ export default function About() {
               <h3 className="text-lg font-bold text-gray-900 mb-1">{member.name}</h3>
               <p className="text-blue-600 text-xs font-bold uppercase tracking-wider mb-3">{member.role}</p>
               <div className="flex justify-center gap-4">
-                <a href={member.linkedin} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"><FiLinkedin size={18}/></a>
-                <a href={member.github} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-900 hover:text-white transition-colors"><FiGithub size={18}/></a>
-                <a href={member.ig} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-pink-50 hover:text-pink-600 transition-colors"><FiInstagram size={18}/></a>
+                <a href={member.linkedin} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-blue-50 hover:text-blue-600 transition-colors"><FiLinkedin size={18}/></a>
+                <a href={member.github} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-900 hover:text-white transition-colors"><FiGithub size={18}/></a>
+                <a href={member.ig} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-pink-50 hover:text-pink-600 transition-colors"><FiInstagram size={18}/></a>
               </div>
             </div>
           ))}

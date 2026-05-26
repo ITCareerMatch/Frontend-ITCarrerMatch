@@ -20,8 +20,8 @@ export default function JobList() {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const limit = 10; // Jumlah item per halaman
   const [totalJobs, setTotalJobs] = useState(0);
-  const limit = 10;
 
   // --- 2. STATE UNTUK INPUT (LOKAL) & FILTER (API) ---
   const [inputs, setInputs] = useState({
@@ -321,7 +321,7 @@ export default function JobList() {
         <div className="w-full lg:w-3/4">
           <div className="flex justify-between items-center mb-6">
             <h2 className="font-bold text-gray-900 text-lg">
-               {loading ? 'Mencari...' : `${totalJobs} Lowongan Ditemukan`}
+               {loading ? 'Mencari...' : `${totalJobs || jobs?.length || 0} Lowongan Ditemukan`}
             </h2>
             <div className="flex items-center gap-2 text-sm">
               <span className="text-gray-500">Urutkan:</span>

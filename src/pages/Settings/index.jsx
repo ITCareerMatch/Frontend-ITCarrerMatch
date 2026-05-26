@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   FiMail, FiLock, FiBell, FiSave, FiCheckCircle, 
   FiArrowRight, FiTrendingUp, FiFileText, 
   FiCamera, FiEdit2, FiX, FiRefreshCw, FiUser,
-  FiCalendar, FiHash, FiTrash2, FiAlertTriangle
+  FiCalendar, FiHash, FiTrash2, FiAlertTriangle, FiZoomIn, FiUploadCloud
 } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
 import { useNavigate } from 'react-router-dom';
@@ -25,6 +25,8 @@ const ToggleSwitch = ({ active, onClick }) => (
 export default function Settings() {
   const navigate = useNavigate();
   const token = localStorage.getItem('access_token');
+  const fileInputRef = useRef(null);
+  const imgRef = useRef(null);
 
   // --- STATE LOADING & ERROR ---
   const [loading, setLoading] = useState(true);
@@ -41,8 +43,15 @@ export default function Settings() {
     name: '',
     email: '',
     gender: '',
-    created_at: ''
+    created_at: '',
+    avatar_url: ''
   });
+
+  // --- FITUR BARU: STATE UNTUK CROP/SESUAIKAN FOTO ---
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [zoom, setZoom] = useState(1);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const [passwords, setPasswords] = useState({
     newPassword: ''
@@ -69,13 +78,13 @@ export default function Settings() {
     const loadProfile = async () => {
       try {
         const data = await fetchUserProfile(token);
-        
         setProfileData({
           id: data?.id || '',
           name: data?.name || '',
           email: data?.email || '',
           gender: data?.gender || '',
-          created_at: data?.created_at || ''
+          created_at: data?.created_at || '',
+          avatar_url: data?.avatar_url || ''
         });
       } catch (err) {
         console.error("Gagal memuat profil:", err);
@@ -88,7 +97,17 @@ export default function Settings() {
     loadProfile();
   }, [token, navigate]);
 
-  // --- HANDLER ---
+  // Bersihkan memory saat modal ditutup
+  useEffect(() => {
+    if (!showCropModal && selectedImage) {
+      URL.revokeObjectURL(selectedImage);
+      setSelectedImage(null);
+      setZoom(1);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showCropModal]);
+
+  // --- HANDLER TEXT INPUT ---
   const handleChange = (e) => {
     const { name, value } = e.target;
     setProfileData(prev => ({ ...prev, [name]: value }));
@@ -106,24 +125,109 @@ export default function Settings() {
     }
   };
 
+  // --- HANDLER 1: MENGAMBIL FOTO & MEMBUKA MODAL CROP ---
+  const handleAvatarSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Ukuran file maksimal adalah 2MB");
+      return;
+    }
+
+    setSelectedImage(URL.createObjectURL(file));
+    setShowCropModal(true);
+    // Reset value input file agar bisa memilih file yang sama lagi jika dibatalkan
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  // --- HANDLER 2: PROSES CROP CANVAS & UPLOAD FOTO (TERPISAH) ---
+  const handleCropAndUpload = async () => {
+    setIsUploadingAvatar(true);
+
+    try {
+      // 1. Buat Canvas Virtual untuk Crop
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 400; // Resolusi Output
+      canvas.height = 400;
+
+      const img = imgRef.current;
+      
+      // Logika untuk meniru efek CSS 'object-cover' + Zoom
+      const imgRatio = img.naturalWidth / img.naturalHeight;
+      const canvasRatio = canvas.width / canvas.height;
+      let drawWidth, drawHeight;
+
+      if (imgRatio > canvasRatio) {
+          drawHeight = canvas.height;
+          drawWidth = img.naturalWidth * (canvas.height / img.naturalHeight);
+      } else {
+          drawWidth = canvas.width;
+          drawHeight = img.naturalHeight * (canvas.width / img.naturalWidth);
+      }
+
+      drawWidth *= zoom;
+      drawHeight *= zoom;
+      const offsetX = (canvas.width - drawWidth) / 2;
+      const offsetY = (canvas.height - drawHeight) / 2;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+
+      // 2. Ekstrak Blob dari Canvas
+      canvas.toBlob(async (blob) => {
+        if (!blob) throw new Error("Gagal memproses gambar");
+
+        const formData = new FormData();
+        formData.append('avatar', blob, 'avatar.jpg');
+        // Tetap kirimkan data profil yang sudah ada agar tidak error di backend
+        formData.append('name', profileData.name);
+        formData.append('gender', profileData.gender);
+
+        // 3. Panggil API
+        const resultData = await updateUserProfile(token, formData);
+        
+        if (resultData && resultData.avatar_url) {
+           setProfileData(prev => ({ ...prev, avatar_url: resultData.avatar_url }));
+        }
+
+        alert('Foto Profil berhasil diperbarui!');
+        setShowCropModal(false);
+        setIsUploadingAvatar(false);
+      }, 'image/jpeg', 0.9);
+
+    } catch (err) {
+      console.error(err);
+      alert('Gagal mengunggah foto: ' + err.message);
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  // --- HANDLER 3: SIMPAN INFORMASI PROFIL (NAMA & GENDER) ---
   const handleSaveSection = async (section) => {
     setSaving(true);
     setError('');
 
     try {
       if (section === 'profile') {
-        const payload = {
-          name: profileData.name,
-          gender: profileData.gender
-        };
-        await updateUserProfile(token, payload);
-        alert('Data Profil berhasil diperbarui!');
+        const formData = new FormData();
+        formData.append('name', profileData.name);
+        formData.append('gender', profileData.gender);
+        // TIDAK mengirimkan avatar di sini karena sudah dipisah
+
+        const resultData = await updateUserProfile(token, formData);
+        
+        if (resultData && resultData.avatar_url) {
+           setProfileData(prev => ({ ...prev, avatar_url: resultData.avatar_url }));
+        }
+
+        alert('Informasi Profil berhasil diperbarui!');
       } 
       else if (section === 'contact') {
         if (passwords.newPassword) {
-          if (passwords.newPassword.length < 6) {
-            throw new Error('Password minimal 6 karakter.');
-          }
+          if (passwords.newPassword.length < 6) throw new Error('Password minimal 6 karakter.');
+          
           const { error: authError } = await supabase.auth.updateUser({
             password: passwords.newPassword
           });
@@ -150,14 +254,9 @@ export default function Settings() {
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
     try {
-      // 1. Hapus data profil di backend
       await deleteUserProfile(token);
-      
-      // 2. Hapus sesi dan bersihkan storage lokal
       await supabase.auth.signOut();
       localStorage.removeItem('access_token');
-      
-      // 3. Arahkan ke beranda dengan pesan sukses
       alert('Akun dan semua data Anda telah berhasil dihapus secara permanen.');
       navigate('/');
     } catch (err) {
@@ -193,7 +292,7 @@ export default function Settings() {
   const avatarInitials = displayName.substring(0, 2).toUpperCase();
 
   return (
-    <div className="max-w-6xl mx-auto pb-12 font-sans text-gray-800">
+    <div className="max-w-6xl mx-auto pb-12 font-sans text-gray-800 animate-fadeIn">
       
       {error && (
         <div className="mb-6 p-4 bg-red-50 text-red-600 border border-red-200 rounded-2xl text-sm font-medium">
@@ -207,13 +306,31 @@ export default function Settings() {
         
         <div className="p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
           <div className="flex flex-col md:flex-row items-start md:items-end gap-4 mt--12">
-            <div className="absolute -top-12 left-6 md:left-8 w-24 h-24 bg-indigo-600 text-white rounded-2xl border-4 border-white flex items-center justify-center text-3xl font-bold shadow-md group cursor-pointer overflow-hidden">
-              <span>{avatarInitials}</span>
+            
+            {/* AVATAR DENGAN FUNGSI UPLOAD*/}
+            <input 
+              type="file" 
+              accept=".jpg,.jpeg,.png" 
+              className="hidden" 
+              ref={fileInputRef} 
+              onChange={handleAvatarSelect} 
+            />
+            <div 
+              onClick={() => fileInputRef.current.click()}
+              className="absolute -top-12 left-6 md:left-8 w-24 h-24 bg-indigo-600 text-white rounded-2xl border-4 border-white flex items-center justify-center text-3xl font-bold shadow-md group cursor-pointer overflow-hidden"
+            >
+              {profileData.avatar_url ? (
+                <img src={profileData.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span>{avatarInitials}</span>
+              )}
+              
               <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <FiCamera size={24} />
-                <span className="text-[10px] mt-1">Ubah Foto</span>
+                <span className="text-[10px] mt-1 text-center font-medium leading-tight">Ubah<br/>Foto</span>
               </div>
             </div>
+
             <div className="mt-14 md:mt-0 md:ml-32">
               <h1 className="text-2xl font-bold text-gray-900 mb-1 capitalize">{displayName}</h1>
               <p className="text-sm text-gray-500">
@@ -231,7 +348,7 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 animate-fadeIn">
+      <div className="flex flex-col lg:flex-row gap-6">
         
         {/* ========================================== */}
         {/* KOLOM KIRI: FORM PENGATURAN & PROFIL */}
@@ -243,7 +360,7 @@ export default function Settings() {
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">Informasi Profil</h2>
-                <p className="text-sm text-gray-500 mt-1">Data dasar yang digunakan sebagai referensi akun Anda.</p>
+                <p className="text-sm text-gray-500 mt-1">Ubah data diri yang akan ditampilkan pada perusahaan.</p>
               </div>
               {!editMode.profile && (
                 <button 
@@ -399,7 +516,7 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* SECTION 4: DANGER ZONE (HAPUS AKUN) */}
+          {/* SECTION 4: DANGER ZONE */}
           <div className="bg-red-50 rounded-3xl p-6 md:p-8 border border-red-100 shadow-sm mt-8">
             <div className="flex items-start gap-4">
               <div className="bg-red-100 p-3 rounded-full text-red-600 shrink-0">
@@ -441,9 +558,64 @@ export default function Settings() {
 
       </div>
 
-      {/* --- MODAL KONFIRMASI HAPUS AKUN --- */}
+      {/* --- MODAL 1: CROP & SESUAIKAN FOTO --- */}
+      {showCropModal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl relative">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-bold text-gray-900">Sesuaikan Foto</h3>
+              <button onClick={() => setShowCropModal(false)} className="text-gray-400 hover:text-gray-600"><FiX size={24}/></button>
+            </div>
+            
+            <p className="text-xs text-gray-500 mb-4 text-center">Atur ukuran foto agar wajah Anda terlihat jelas di dalam lingkaran.</p>
+
+            {/* PREVIEW CONTAINER */}
+            <div className="relative w-56 h-56 mx-auto overflow-hidden rounded-full border-4 border-indigo-100 shadow-inner bg-gray-50 flex items-center justify-center mb-6">
+              <img 
+                ref={imgRef}
+                src={selectedImage} 
+                alt="Crop Preview" 
+                className="w-full h-full object-cover origin-center"
+                style={{ transform: `scale(${zoom})` }}
+              />
+            </div>
+
+            {/* ZOOM SLIDER */}
+            <div className="flex items-center gap-4 mb-8 px-2">
+              <FiZoomIn className="text-gray-400 shrink-0" size={20}/>
+              <input 
+                type="range" 
+                min="1" max="3" step="0.05" 
+                value={zoom} 
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600" 
+              />
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={handleCropAndUpload}
+                disabled={isUploadingAvatar}
+                className="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition-colors shadow-md shadow-blue-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {isUploadingAvatar ? <FiRefreshCw className="animate-spin" size={18}/> : <FiUploadCloud size={18}/>}
+                {isUploadingAvatar ? 'Mengunggah Foto...' : 'Terapkan & Unggah'}
+              </button>
+              <button 
+                onClick={() => setShowCropModal(false)}
+                disabled={isUploadingAvatar}
+                className="w-full bg-gray-50 text-gray-700 font-bold py-3.5 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL 2: KONFIRMASI HAPUS AKUN --- */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
             <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6 mx-auto">
               <FiAlertTriangle size={32} />
