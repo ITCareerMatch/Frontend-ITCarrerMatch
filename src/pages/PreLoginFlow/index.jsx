@@ -86,7 +86,9 @@ export default function PreLoginFlow() {
       {/* --- HEADER --- */}
       <header className="flex justify-between items-center py-4 px-6 md:px-12 lg:px-16 border-b border-gray-100 bg-white sticky top-0 z-50 shadow-sm mb-8">
         <div className="flex items-center gap-2 font-bold text-xl text-gray-900 cursor-pointer" onClick={() => navigate('/')}>
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white"><BsStars size={18} /></div>
+          <div>
+            <img src="/images/logo-itcareermatch.png" alt="ITCareerMatch Logo" className="w-15 h-15 object-contain" />
+          </div>
           ITCareerMatch
         </div>
         <div className="flex items-center gap-4">

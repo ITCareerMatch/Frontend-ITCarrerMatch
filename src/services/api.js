@@ -131,19 +131,25 @@ export async function checkCVStatus(token, taskId) {
   return { status: result.status, data: result.result };
 }
 
-// Sisa fungsi tetap sama
 export async function fetchAllJobs(params = {}) {
-  const { search = '', city = '', province = '', minSalary = '', maxSalary = '', minAge = '', maxAge = '', education_level = '', gender = '', page = 1, limit = 10 } = params;
+  const {
+    search = '', city = '', province = '',
+    minSalary = '', maxSalary = '',
+    minAge = '', maxAge = '',
+    education_level = '', gender = '',
+    page = 1, limit = 10
+  } = params;
+
   const query = new URLSearchParams();
-  if (search) query.append('search', search);
-  if (city) query.append('city', city);
-  if (province) query.append('province', province);
-  if (minSalary) query.append('minSalary', minSalary);
-  if (maxSalary) query.append('maxSalary', maxSalary);
-  if (minAge) query.append('minAge', minAge);
-  if (maxAge) query.append('maxAge', maxAge);
+  if (search)          query.append('search', search);
+  if (city)            query.append('city', city);
+  if (province)        query.append('province', province);
+  if (minSalary)       query.append('minSalary', minSalary);
+  if (maxSalary)       query.append('maxSalary', maxSalary);
+  if (minAge)          query.append('minAge', minAge);
+  if (maxAge)          query.append('maxAge', maxAge);
   if (education_level) query.append('education_level', education_level);
-  if (gender) query.append('gender', gender);
+  if (gender)          query.append('gender', gender);
   query.append('page', String(page));
   query.append('limit', String(limit));
 
@@ -151,21 +157,25 @@ export async function fetchAllJobs(params = {}) {
     method: 'GET',
     headers: buildHeaders(),
   });
+
   const result = await response.json().catch(() => null);
   if (!response.ok) throw new Error(result?.message || `Gagal mengambil daftar lowongan (HTTP ${response.status})`);
-  return { 
+
+  return {
     jobs: result.data,
-    pagination: result.meta || result.pagination 
+    pagination: result.pagination
   };
 }
 
-export async function fetchJobDetail(jobId) {
-  const response = await fetch(`${API_BASE_URL}/api/v1/jobs/${jobId}`, {
+export async function fetchJobDetail(id) {
+  const response = await fetch(`${API_BASE_URL}/api/v1/jobs/${id}`, {
     method: 'GET',
     headers: buildHeaders(),
   });
+
   const result = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(result?.message || `Gagal mengambil detail lowongan (HTTP ${response.status})`);
+  if (!response.ok) throw new Error(result?.message || `Gagal mengambil detail pekerjaan (HTTP ${response.status})`);
+
   return result.data;
 }
 

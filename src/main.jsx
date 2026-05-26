@@ -6,7 +6,7 @@ import './index.css'
 ReactDOM.createRoot(document.getElementById('root')).render(
   // Matikan StrictMode SEMENTARA untuk menghindari double-render 
   // yang membingungkan Backend saat proses upload/klaim CV.
-  // <React.StrictMode>
+  <React.StrictMode>
     <AppRoutes />
-  // </React.StrictMode>
+  </React.StrictMode>
 )

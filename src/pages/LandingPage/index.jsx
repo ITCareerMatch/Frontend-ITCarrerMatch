@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuth from '../../context/useAuth';
 // Import Ikon dari react-icons
-import { FiCheckCircle, FiShield, FiZap, FiFileText, FiTarget, FiTrendingUp, FiClock, FiUploadCloud, FiSearch, FiBriefcase, FiMessageSquare, FiActivity, FiUsers, FiMenu, FiX } from 'react-icons/fi';
+import { FiCheckCircle, FiShield, FiZap, FiFileText, FiTarget, FiTrendingUp, FiClock, FiUploadCloud, FiSearch, FiBriefcase, FiMessageSquare, FiActivity, FiUsers, FiMenu, FiX, FiGithub, FiMail } from 'react-icons/fi';
 import { BsArrowRight, BsStars, BsFillChatDotsFill } from 'react-icons/bs';
 import { FaStar } from 'react-icons/fa';
 
@@ -19,8 +19,8 @@ export default function LandingPage() {
       <header className="flex justify-between items-center py-4 px-6 md:px-12 lg:px-16 border-b border-gray-100 bg-white sticky top-0 z-50">
         {/* Logo */}
         <div className="flex items-center gap-2 font-bold text-xl text-gray-900 cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
-            <FiFileText size={18} />
+          <div>
+            <img src="/images/logo-itcareermatch.png" alt="ITCareerMatch Logo" className="w-15 h-15 object-contain" />
           </div>
           ITCareerMatch
         </div>
@@ -30,6 +30,7 @@ export default function LandingPage() {
           <a href="#cara-kerja" className="hover:text-blue-600 transition-colors cursor-pointer">Cara Kerja</a>
           <a href="#fitur" className="hover:text-blue-600 transition-colors cursor-pointer">Fitur AI</a>
           <a onClick={() => navigate('/lowongan')} className="hover:text-blue-600 transition-colors cursor-pointer">Daftar Lowongan</a>
+          <a onClick={() => navigate('/tentang-kami')} className="hover:text-blue-600 transition-colors cursor-pointer">Tentang Kami</a>
         </nav>
 
         {/* Tombol Mobile Toggle */}
@@ -71,6 +72,7 @@ export default function LandingPage() {
             <a href="#cara-kerja" onClick={() => setMobileMenuOpen(false)} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-gray-50 pb-3">Cara Kerja</a>
             <a href="#fitur" onClick={() => setMobileMenuOpen(false)} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-gray-50 pb-3">Fitur AI</a>
             <a onClick={() => { setMobileMenuOpen(false); navigate('/lowongan'); }} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-gray-50 pb-3">Daftar Lowongan</a>
+            <a onClick={() => { setMobileMenuOpen(false); navigate('/tentang-kami'); }} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-gray-50 pb-3">Tentang Kami</a>
             <div className="flex flex-col gap-3 pt-2 w-full">
               {isLoggedIn ? (
                 <button onClick={() => { setMobileMenuOpen(false); navigate('/dashboard'); }} className="w-full bg-white text-gray-700 px-4 py-3 rounded-xl border border-gray-200 transition-colors">Ke Dashboard</button>
@@ -389,14 +391,14 @@ export default function LandingPage() {
             </ul>
           </div>
           <div>
-            <h4 className="font-bold text-gray-900 mb-4 text-sm">Team - CC26-PSU088:</h4>
+            <h4 className="font-bold text-gray-900 mb-4 text-sm">Kontak</h4>
             <ul className="space-y-3 text-xs text-gray-500 font-medium">
-              <li className="hover:text-blue-600 cursor-pointer">CDCC284D6Y2328 - Chardinal Martin Butarbutar</li>
-              <li className="hover:text-blue-600 cursor-pointer">CDCC284D6X0604 - Nadhia Della Puspita Sari</li>
-              <li className="hover:text-blue-600 cursor-pointer">CFCC284D6X2831 - Mutiara Angelita Muhaeni</li>
-              <li className="hover:text-blue-600 cursor-pointer">CFCC614D6Y0867 - Ahmad Sefriadi</li>
-              <li className="hover:text-blue-600 cursor-pointer">CACC012D6Y0477 - Muhammad Arifbillah Kamil</li>
-              <li className="hover:text-blue-600 cursor-pointer">CACC715D6Y0952 - Ulil Noor Absor</li>
+              <div>
+                <a href="https://github.com/ITCareerMatch" className="ml-4 hover:text-blue-600 transition-colors"><FiGithub size={16} className="inline-block mr-1" />ITCareerMatch</a>
+              </div>
+              <div>
+                <a href="mailto:cc26-psu088@example.com" className="ml-4 hover:text-blue-600 transition-colors"><FiMail size={16} className="inline-block mr-1" />CC26-PSU088</a>
+              </div>
             </ul>
           </div>
         </div>

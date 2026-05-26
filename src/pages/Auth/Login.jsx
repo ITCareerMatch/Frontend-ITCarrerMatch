@@ -75,8 +75,8 @@ export default function Login() {
 
         <div className="relative z-10 gap-2 flex flex-col items-start">
           <div className="flex items-center gap-2 font-bold text-2xl mb-5 cursor-pointer" onClick={() => navigate('/')}>
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-700 shadow-lg">
-              <BsStars size={24} />
+            <div>
+              <img src="/images/logo-itcareermatch.png" alt="ITCareerMatch Logo" className="w-13 h-13 mr-3 object-contain bg-white rounded-lg" />
             </div>
             ITCareerMatch
           </div>

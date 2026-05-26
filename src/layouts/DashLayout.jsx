@@ -89,7 +89,9 @@ export default function DashLayout() {
       <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-70 bg-white border-r border-gray-200 shadow-xl lg:shadow-none transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'} flex flex-col`}>
         <div className="h-19 flex items-center px-6 border-b border-gray-100 justify-between">
           <div className="flex items-center gap-2 font-bold text-lg sm:text-xl text-gray-900 cursor-pointer" onClick={() => navigate('/')}>
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white"><BsStars size={16} /></div>
+            <div>
+              <img src="/images/logo-itcareermatch.png" alt="ITCareerMatch Logo" className="w-15 h-15 object-contain" />
+            </div>
             ITCareerMatch
           </div>
           <button className="lg:hidden text-gray-500" onClick={() => setIsSidebarOpen(false)}><FiX size={24} /></button>

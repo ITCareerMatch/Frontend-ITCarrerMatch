@@ -57,7 +57,6 @@ export default function JobList() {
           city: filters.city,
           minSalary: filters.minSalary,
           maxSalary: filters.maxSalary,
-          job_type: filters.job_type,
           education_level: filters.education_level,
           page: currentPage,
           limit
@@ -101,23 +100,31 @@ export default function JobList() {
 
   const hasActiveFilters = Object.values(inputs).some(val => val !== '' && val !== 'latest');
 
+  const formatSalary = (min, max) => {
+    if (!min && !max) return 'Gaji Disembunyikan';
+    const fmt = (n) => `Rp ${(n / 1_000_000).toFixed(0)}jt`;
+    if (min && max) return `${fmt(min)} – ${fmt(max)}`;
+    if (min) return `≥ ${fmt(min)}`;
+    return `≤ ${fmt(max)}`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50/50 font-sans text-gray-800 pb-20">
       
       {/* --- NAVBAR --- */}
       <header className="flex justify-between items-center py-4 px-6 md:px-12 lg:px-16 border-b border-gray-100 bg-white sticky top-0 z-50">
         <div className="flex items-center gap-2 font-bold text-xl text-gray-900 cursor-pointer" onClick={() => navigate('/')}>
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
-            <FiFileText size={18} />
+          <div>
+            <img src="/images/logo-itcareermatch.png" alt="ITCareerMatch Logo" className="w-15 h-15 object-contain" />
           </div>
           ITCareerMatch
         </div>
         
         {/* Menu Desktop */}
         <nav className="hidden md:flex gap-8 text-sm font-medium text-gray-600">
-          <a onClick={() => navigate('/')} className="hover:text-blue-600 transition-colors cursor-pointer">Cara Kerja</a>
-          <a onClick={() => navigate('/')} className="hover:text-blue-600 transition-colors cursor-pointer">Fitur AI</a>
+          <a onClick={() => navigate('/')} className="hover:text-blue-600 transition-colors cursor-pointer">Beranda</a>
           <a onClick={() => navigate('/lowongan')} className="text-blue-600 font-bold transition-colors cursor-pointer">Daftar Lowongan</a>
+          <a onClick={() => navigate('/tentang-kami')} className="hover:text-blue-600 transition-colors cursor-pointer">Tentang Kami</a>
         </nav>
         
         {/* Tombol Mobile Toggle */}
@@ -156,9 +163,9 @@ export default function JobList() {
       {mobileMenuOpen && (
         <div className="fixed md:hidden inset-x-0 top-[73px] z-40 bg-white border-b border-gray-100 px-8 py-6 shadow-xl max-h-[calc(100vh-4rem)] overflow-y-auto"> 
           <div className="flex flex-col gap-5 text-sm font-bold text-gray-700 items-start bg-white">
-            <a onClick={() => { setMobileMenuOpen(false); navigate('/'); }} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-gray-50 pb-3">Cara Kerja</a>
-            <a onClick={() => { setMobileMenuOpen(false); navigate('/'); }} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-gray-50 pb-3">Fitur AI</a>
+            <a onClick={() => { setMobileMenuOpen(false); navigate('/'); }} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-gray-50 pb-3">Beranda</a>
             <a onClick={() => { setMobileMenuOpen(false); navigate('/lowongan'); }} className="block text-blue-600 transition-colors cursor-pointer w-full border-b border-gray-50 pb-3">Daftar Lowongan</a>
+            <a onClick={() => { setMobileMenuOpen(false); navigate('/tentang-kami'); }} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-gray-50 pb-3">Tentang Kami</a>
             <div className="flex flex-col gap-3 pt-2 w-full">
               {isLoggedIn ? (
                 <button onClick={() => { setMobileMenuOpen(false); navigate('/dashboard'); }} className="w-full bg-white text-gray-700 px-4 py-3 rounded-xl border border-gray-200 transition-colors">Dashboard</button>
@@ -351,55 +358,57 @@ export default function JobList() {
             ) : (
               <>
                 {jobs.map((job) => (
-                  <div key={job?.id} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-200 transition-all group flex flex-col cursor-pointer" onClick={() => navigate(`/detail/${job?.id}`)}>
+                  <div
+                    key={job?.id}
+                    className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-200 transition-all group flex flex-col cursor-pointer"
+                    onClick={() => navigate(`/detail/${job?.id}`)}
+                  >
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex gap-4">
                         <div className="w-14 h-14 bg-blue-50 border border-blue-100 text-blue-600 rounded-2xl flex items-center justify-center font-black text-2xl shadow-sm shrink-0">
                           {job?.title?.substring(0, 1).toUpperCase() || 'J'}
                         </div>
                         <div>
-                          <div className="flex flex-wrap items-center gap-2 mb-1">
-                            <h3 className="font-bold text-xl text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">{job?.title}</h3>
-                          </div>
+                          <h3 className="font-bold text-xl text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1 mb-1">
+                            {job?.title}
+                          </h3>
                           <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
-                            <span className="font-semibold text-gray-700 flex items-center gap-1.5"><FiBriefcase className="text-gray-400"/> {job?.company_name}</span>
+                            <span className="font-semibold text-gray-700 flex items-center gap-1.5">
+                              <FiBriefcase className="text-gray-400" /> {job?.company_name}
+                            </span>
                             <span className="w-1.5 h-1.5 bg-gray-300 rounded-full hidden sm:block"></span>
-                            <span className="flex items-center gap-1.5"><FiMapPin className="text-gray-400"/> {job?.city || 'Indonesia'} {job?.province ? `, ${job?.province}` : ''}</span>
+                            {/* ✅ Hanya city — province tidak ada di list response */}
+                            <span className="flex items-center gap-1.5">
+                              <FiMapPin className="text-gray-400" /> {job?.city || 'Indonesia'}
+                            </span>
                           </div>
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-2 mb-5">
-                      <span className="bg-gray-50 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-100 flex items-center gap-1.5 capitalize">
-                        {job?.job_type || 'Full-time'}
-                      </span>
+                      {/* ✅ Salary dari salary_min / salary_max */}
                       <span className="bg-green-50 text-green-700 text-xs font-bold px-3 py-1.5 rounded-lg border border-green-100 flex items-center gap-1.5">
-                        <FiDollarSign size={14} className="-mr-0.5" /> {job?.salary_raw || 'Gaji Disembunyikan'}
+                        <FiDollarSign size={14} className="-mr-0.5" />
+                        {formatSalary(job?.salary_min, job?.salary_max)}
                       </span>
                     </div>
-                    
-                    {job?.skills && job?.skills.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-6">
-                        {job.skills.slice(0, 5).map((skill, i) => (
-                          <span key={i} className="bg-white border border-gray-200 text-gray-600 text-xs font-medium px-2.5 py-1 rounded-md">{skill}</span>
-                        ))}
-                        {job.skills.length > 5 && <span className="bg-gray-50 border border-gray-100 text-gray-400 text-xs px-2.5 py-1 rounded-md font-bold">+{job.skills.length - 5}</span>}
-                      </div>
-                    )}
-                    
+
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pt-5 border-t border-gray-50 gap-4 mt-auto">
                       <div className="flex items-center gap-3 text-xs">
-                        <span className="text-gray-400 font-medium flex items-center gap-1.5"><FiClock/> {job?.created_at ? new Date(job.created_at).toLocaleDateString('id-ID') : 'Terbaru'}</span>
-                        
-                        {/* Status AI Matching */}
                         {isLoggedIn ? (
-                          <span className="font-bold flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-50 text-green-600 border border-green-100"><FiCheckCircle/> Terhubung dengan CV Anda</span>
+                          <span className="font-bold flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-50 text-green-600 border border-green-100">
+                            <FiCheckCircle /> Terhubung dengan CV Anda
+                          </span>
                         ) : (
-                          <span className="text-purple-600 bg-purple-50 px-2.5 py-1 rounded-md border border-purple-100 font-bold flex items-center gap-1.5"><BsStars/> Tersedia AI Match</span>
+                          <span className="text-purple-600 bg-purple-50 px-2.5 py-1 rounded-md border border-purple-100 font-bold flex items-center gap-1.5">
+                            <BsStars /> Tersedia AI Match
+                          </span>
                         )}
                       </div>
-                      <span className="text-blue-600 text-sm font-bold flex items-center gap-1 group-hover:mr-1 transition-all">Lihat Detail <FiArrowRight /></span>
+                      <span className="text-blue-600 text-sm font-bold flex items-center gap-1 group-hover:mr-1 transition-all">
+                        Lihat Detail <FiArrowRight />
+                      </span>
                     </div>
                   </div>
                 ))}

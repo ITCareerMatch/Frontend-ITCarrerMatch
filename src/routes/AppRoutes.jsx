@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
 import AuthProvider from '../context/AuthContext';
+import About from '../pages/About';
 
 // 1. Lazy Loading Komponen
 const LandingPage = lazy(() => import('../pages/LandingPage'));
@@ -16,6 +17,7 @@ const NewAnalysis = lazy(() => import('../pages/NewAnalysis'));
 const AnalysisResult = lazy(() => import('../pages/AnalysisResult'));
 const DashboardJobs = lazy(() => import('../pages/DashboardJobs'));
 const Settings = lazy(() => import('../pages/Settings'));
+const AboutUs = lazy(() => import('../pages/About'));
 
 // 2. Komponen Loading
 const PageLoader = () => (
@@ -53,6 +55,7 @@ const router = createBrowserRouter([
     element: <RootLayout />, // AuthProvider sekarang ada di level tertinggi sistem router
     children: [
       { path: '/', element: <LandingPage /> },
+      { path: '/tentang-kami', element: <About/> },
       { path: '/lowongan', element: <JobList /> },
       { path: '/cek-skor', element: <PreLoginFlow /> },
       { path: '/analisis-result', element: <AnalysisResult /> },
