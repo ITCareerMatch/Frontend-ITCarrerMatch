@@ -133,7 +133,7 @@ export default function JobDetail() {
             background-color: rgb(248, 250, 252) !important;
           }
           .detail-container {
-            padding-top: 6rem !important;
+            padding-top: 1rem !important;
             padding-bottom: 4rem !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;

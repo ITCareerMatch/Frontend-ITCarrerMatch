@@ -26,11 +26,11 @@ export default function DashLayout() {
 
   // Logika untuk menentukan judul halaman yang sedang dibuka
   const getPageTitle = () => {
+    if (location.pathname.includes('/detail')) return 'Detail Lowongan';
     if (location.pathname.includes('/dashboard')) return 'Dashboard';
     if (location.pathname.includes('/editor')) return 'CV Editor';
     if (location.pathname.includes('/analisis-baru')) return 'Analisis Baru';
     if (location.pathname.includes('/daftar-lowongan')) return 'Daftar Lowongan';
-    if (location.pathname.includes('/dashboard/detail:id')) return 'Detail Lowongan';
     if (location.pathname.includes('/pengaturan')) return 'Pengaturan';
     return 'Dashboard';
   };
@@ -121,7 +121,17 @@ export default function DashLayout() {
         <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
           <p className="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Menu Utama</p>
           {navItems.map((item) => {
-            const isActive = location.pathname.includes(item.path);
+            
+            // --- LOGIKA DETERMINISTIK MENENTUKAN MENU AKTIF ---
+            let isActive = false;
+            if (location.pathname.includes('/detail/')) {
+              // Jika sedang berada di rincian lowongan, alihkan sorotan ke menu "Daftar Lowongan"
+              isActive = item.path === '/daftar-lowongan';
+            } else {
+              // Jika di halaman biasa, gunakan pencocokan standar
+              isActive = location.pathname.includes(item.path);
+            }
+
             return (
               <button 
                 key={item.path} 

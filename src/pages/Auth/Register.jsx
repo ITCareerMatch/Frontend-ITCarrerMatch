@@ -7,6 +7,7 @@ import { BsStars } from 'react-icons/bs';
 import { FcGoogle } from 'react-icons/fc';
 import { FaStar } from 'react-icons/fa';
 import { supabase } from '../../lib/supabase';
+import Swal from 'sweetalert2';
 
 // Konfigurasi animasi seragam
 const fadeInUp = {
@@ -60,13 +61,28 @@ export default function Register() {
       if (error) throw error;
       if (!data) throw new Error('Respons Supabase tidak valid.');
 
-      if (data.session) {
-        localStorage.setItem('access_token', data.session.access_token);
-        navigate(redirectTarget);
-      } else {
-        alert("Registrasi berhasil! Silakan periksa email Anda atau login.");
-        navigate(`/login${redirectTarget !== '/dashboard' ? `?redirect=${redirectTarget}` : ''}`);
-      }
+      // PENCEGAHAN AUTO-LOGIN: Bersihkan seluruh session lokal bawaan Supabase
+      await supabase.auth.signOut();
+      localStorage.removeItem('access_token');
+
+      // Tampilkan SweetAlert2 secara wajib untuk semua pendaftaran sukses
+      await Swal.fire({
+        icon: 'success',
+        title: 'Registrasi Berhasil',
+        text: 'Akun Anda berhasil didaftarkan! Silakan masuk menggunakan email dan kata sandi baru Anda.',
+        confirmButtonColor: '#3b82f6', // Matching dengan skema biru form
+        background: '#ffffff',
+        customClass: {
+          popup: 'rounded-3xl border border-slate-200/60 shadow-xl font-sans',
+          title: 'text-slate-900 font-extrabold text-lg tracking-tight',
+          htmlContainer: 'text-slate-500 font-semibold text-xs leading-relaxed',
+          confirmButton: 'px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider'
+        }
+      });
+
+      // Alihkan secara aman ke halaman Login setelah tombol konfirmasi diklik
+      navigate(`/login${redirectTarget !== '/dashboard' ? `?redirect=${redirectTarget}` : ''}`);
+
     } catch (error) {
       setErrorMsg("Gagal registrasi: " + error.message);
     } finally {
@@ -203,7 +219,7 @@ export default function Register() {
         </div>
 
         {/* Form Container (Clean Vercel Style Card) */}
-        <div className="w-full max-w-md bg-white rounded-3xl p-8 border border-slate-200/60 shadow-xl shadow-slate-200/40">
+        <div className="w-full max-w-md bg-white rounded-3xl p-8 border border-slate-200/60 shadow-xl shadow-slate-200/40 text-left">
           
           {/* Tombol Google Terintegrasi */}
           <button 

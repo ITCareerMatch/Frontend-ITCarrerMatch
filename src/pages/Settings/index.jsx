@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom'; // Import untuk memindahkan modal foto ke tingkat bodi dokumen
 import { 
   FiMail, FiLock, FiBell, FiSave, FiCheckCircle, 
   FiArrowRight, FiTrendingUp, FiFileText, 
@@ -10,6 +11,7 @@ import { BsStars } from 'react-icons/bs';
 import { useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
+import Swal from 'sweetalert2';
 
 // Import fungsi API & Supabase
 import { fetchUserProfile, updateUserProfile, deleteUserProfile } from '../../services/api';
@@ -31,17 +33,6 @@ const fadeInUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.65, ease: [0.16, 1, 0.3, 1] } }
 };
 
-// eslint-disable-next-line no-unused-vars
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05
-    }
-  }
-};
-
 export default function Settings() {
   const navigate = useNavigate();
   const token = localStorage.getItem('access_token');
@@ -53,8 +44,7 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // --- STATE UNTUK HAPUS AKUN ---
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  // State hapus akun disederhanakan murni menggunakan status loading API
   const [isDeleting, setIsDeleting] = useState(false);
 
   // --- STATE UNTUK DATA FORM ---
@@ -159,7 +149,12 @@ export default function Settings() {
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      alert("Ukuran file maksimal adalah 2MB");
+      Swal.fire({
+        icon: 'warning',
+        title: 'Ukuran Berkas Terlalu Besar',
+        text: 'Batas ukuran foto profil maksimal adalah 2MB.',
+        confirmButtonColor: '#0f172a'
+      });
       return;
     }
 
@@ -209,7 +204,6 @@ export default function Settings() {
 
         const formData = new FormData();
         formData.append('avatar', blob, 'avatar.jpg');
-        // Tetap kirimkan data profil yang sudah ada agar tidak error di backend
         formData.append('name', profileData.name);
         formData.append('gender', profileData.gender);
 
@@ -220,14 +214,24 @@ export default function Settings() {
            setProfileData(prev => ({ ...prev, avatar_url: resultData.avatar_url }));
         }
 
-        alert('Foto Profil berhasil diperbarui!');
+        Swal.fire({
+          icon: 'success',
+          title: 'Pembaruan Berhasil',
+          text: 'Foto Profil Anda berhasil diperbarui dengan aman!',
+          confirmButtonColor: '#0f172a'
+        });
         setShowCropModal(false);
         setIsUploadingAvatar(false);
       }, 'image/jpeg', 0.9);
 
     } catch (err) {
       console.error(err);
-      alert('Gagal mengunggah foto: ' + err.message);
+      Swal.fire({
+        icon: 'error',
+        title: 'Gagal',
+        text: 'Gagal mengunggah foto: ' + err.message,
+        confirmButtonColor: '#0f172a'
+      });
       setIsUploadingAvatar(false);
     }
   };
@@ -249,7 +253,12 @@ export default function Settings() {
            setProfileData(prev => ({ ...prev, avatar_url: resultData.avatar_url }));
         }
 
-        alert('Informasi Profil berhasil diperbarui!');
+        Swal.fire({
+          icon: 'success',
+          title: 'Pembaruan Berhasil',
+          text: 'Informasi data diri Anda berhasil diperbarui!',
+          confirmButtonColor: '#0f172a'
+        });
       } 
       else if (section === 'contact') {
         if (passwords.newPassword || passwords.confirmPassword) {
@@ -267,12 +276,22 @@ export default function Settings() {
           });
           
           if (authError) throw authError;
-          alert('Kata sandi berhasil diperbarui secara aman!');
+          Swal.fire({
+            icon: 'success',
+            title: 'Berhasil',
+            text: 'Kata sandi Anda berhasil diperbarui secara aman!',
+            confirmButtonColor: '#0f172a'
+          });
           setPasswords({ newPassword: '', confirmPassword: '' });
           setShowNewPassword(false);
           setShowConfirmPassword(false);
         } else {
-          alert('Tidak ada perubahan keamanan yang dilakukan.');
+          Swal.fire({
+            icon: 'info',
+            title: 'Informasi',
+            text: 'Tidak ada perubahan keamanan yang dilakukan.',
+            confirmButtonColor: '#0f172a'
+          });
         }
       }
 
@@ -280,27 +299,63 @@ export default function Settings() {
 
     } catch (err) {
       console.error(err);
-      alert(err.message || 'Gagal menyimpan perubahan.');
+      Swal.fire({
+        icon: 'error',
+        title: 'Penyimpanan Gagal',
+        text: err.message || 'Gagal menyimpan perubahan.',
+        confirmButtonColor: '#0f172a'
+      });
     } finally {
       setSaving(false);
     }
   };
 
-  // --- HANDLER HAPUS AKUN ---
-  const handleDeleteAccount = async () => {
-    setIsDeleting(true);
-    try {
-      await deleteUserProfile(token);
-      await supabase.auth.signOut();
-      localStorage.removeItem('access_token');
-      alert('Akun dan semua data Anda telah berhasil dihapus secara permanen.');
-      navigate('/');
-    } catch (err) {
-      console.error(err);
-      alert('Gagal menghapus akun: ' + err.message);
-      setIsDeleting(false);
-      setShowDeleteModal(false);
-    }
+  // --- HANDLER HAPUS AKUN (Menggunakan SweetAlert2 Konfirmasi Penuh secara Stabil) ---
+  const triggerDeleteAccount = () => {
+    Swal.fire({
+      title: 'Hapus Akun Permanen?',
+      text: `Apakah Anda yakin ingin menghapus akun ini? Segala data pelacakan karir yang berkaitan dengan akun ${profileData.email} tidak akan bisa dipulihkan kembali setelah akun berhasil dieliminasi.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#e11d48', // Warna Rose-600 bertema bahaya
+      cancelButtonColor: '#64748b', // Warna Slate-500
+      confirmButtonText: 'Ya, Hapus Permanen',
+      cancelButtonText: 'Batal',
+      background: '#ffffff',
+      customClass: {
+        popup: 'rounded-3xl border border-slate-200/60 shadow-xl font-sans text-left p-6',
+        title: 'text-slate-900 font-extrabold text-lg tracking-tight mb-2',
+        htmlContainer: 'text-slate-500 font-semibold text-xs leading-relaxed',
+        confirmButton: 'px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider',
+        cancelButton: 'px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider'
+      }
+    }).then(async (result) => {
+      if (result.isConfirmed) {
+        setIsDeleting(true);
+        try {
+          await deleteUserProfile(token);
+          await supabase.auth.signOut();
+          localStorage.removeItem('access_token');
+          
+          await Swal.fire({
+            icon: 'success',
+            title: 'Akun Dihapus',
+            text: 'Akun dan seluruh data Anda telah berhasil dihapus secara permanen.',
+            confirmButtonColor: '#0f172a'
+          });
+          navigate('/');
+        } catch (err) {
+          console.error(err);
+          Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: 'Gagal menghapus akun: ' + err.message,
+            confirmButtonColor: '#0f172a'
+          });
+          setIsDeleting(false);
+        }
+      }
+    });
   };
 
   const getInputClass = (isEditing) => `w-full px-4 py-3 border rounded-xl outline-none text-sm transition-all duration-300 ${
@@ -328,7 +383,7 @@ export default function Settings() {
   const avatarInitials = displayName.substring(0, 2).toUpperCase();
 
   return (
-    <div className="max-w-6xl mx-auto pb-12 font-sans text-slate-800 animate-fadeIn text-left select-none">
+    <div className="max-w-6xl mx-auto pb-12 font-sans text-slate-800 animate-fadeIn text-left select-none relative">
       
       {error && (
         <div className="mb-6 p-4 bg-rose-50 text-rose-600 border border-rose-100 rounded-2xl text-xs font-bold flex items-center gap-2">
@@ -626,8 +681,10 @@ export default function Settings() {
                 <p className="text-xs sm:text-sm text-rose-600 mb-6 leading-relaxed font-semibold">
                   Tindakan penghapusan ini bersifat mutlak dan permanen. Seluruh data profil diri, riwayat pindaian resume, dan pelacakan kelayakan lowongan Anda akan dieliminasi total dari sistem server.
                 </p>
+                {/* MODIFIKASI: Menggunakan SweetAlert2 Konfirmasi untuk Menghapus Akun secara Menyeluruh */}
                 <button 
-                  onClick={() => setShowDeleteModal(true)}
+                  onClick={triggerDeleteAccount}
+                  disabled={isDeleting}
                   className="bg-white text-rose-600 font-bold px-5 py-2.5 rounded-xl border border-rose-200 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-colors text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-sm"
                 >
                   <FiTrash2 size={14}/> Hapus Akun Saya
@@ -639,7 +696,7 @@ export default function Settings() {
         </div>
 
         {/* ========================================== */}
-        {/* KOLOM KANAN: WIDGET SAMPING & STRENGTH METER */}
+        {/* KOLOM KANAN: WIDGET CHAMPING & STRENGTH METER */}
         {/* ========================================== */}
         <div className="lg:w-1/3 space-y-6">
           
@@ -711,7 +768,7 @@ export default function Settings() {
             })()}
           </motion.div>
 
-          {/* Analisis Baru Widget */}
+          {/* Analisis CV Baru Sampingan */}
           <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden border border-slate-800">
              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl pointer-events-none" />
              <BsStars size={24} className="mb-4 text-amber-300 animate-pulse relative z-10" />
@@ -727,19 +784,19 @@ export default function Settings() {
 
       </div>
 
-      {/* --- MODAL 1: CROP & SESUAIKAN FOTO --- */}
-      {showCropModal && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl relative text-center">
+      {/* --- MODAL 1: CROP & SESUAIKAN FOTO (Menggunakan createPortal agar menutupi Sidebar Dasbor) --- */}
+      {showCropModal && createPortal(
+        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl relative text-center border border-slate-200/60 animate-fadeIn">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-base font-extrabold text-slate-950 uppercase tracking-wider">Sesuaikan Foto</h3>
-              <button onClick={() => setShowCropModal(false)} className="text-slate-400 hover:text-slate-600"><FiX size={20}/></button>
+              <button onClick={() => setShowCropModal(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer p-1.5 hover:bg-slate-50 rounded-xl"><FiX size={20}/></button>
             </div>
             
             <p className="text-xs text-slate-500 mb-5 font-semibold leading-relaxed">Geser slider di bawah untuk menyesuaikan wajah Anda di dalam lingkaran.</p>
 
-            {/* PREVIEW CONTAINER */}
-            <div className="relative w-48 h-48 mx-auto overflow-hidden rounded-full border-4 border-slate-100 shadow-inner bg-slate-50 flex items-center justify-center mb-6">
+            {/* PREVIEW CONTAINER (Double Glow Ring) */}
+            <div className="relative w-44 h-44 mx-auto overflow-hidden rounded-full border-4 border-white shadow-lg shadow-blue-500/10 bg-slate-50 flex items-center justify-center mb-6 ring-4 ring-blue-500/5">
               <img 
                 ref={imgRef}
                 src={selectedImage} 
@@ -751,7 +808,7 @@ export default function Settings() {
 
             {/* ZOOM SLIDER */}
             <div className="flex items-center gap-4 mb-8 px-2">
-              <FiZoomIn className="text-slate-400 shrink-0" size={18}/>
+              <FiZoomIn className="text-blue-500 shrink-0" size={18}/>
               <input 
                 type="range" 
                 min="1" max="3" step="0.05" 
@@ -773,47 +830,14 @@ export default function Settings() {
               <button 
                 onClick={() => setShowCropModal(false)}
                 disabled={isUploadingAvatar}
-                className="w-full bg-slate-50 text-slate-500 font-bold py-3 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50 text-xs uppercase tracking-wider"
+                className="w-full bg-slate-50 text-slate-500 font-bold py-3 rounded-xl hover:bg-slate-100 transition-all cursor-pointer disabled:opacity-50 text-xs uppercase tracking-wider border border-slate-200"
               >
                 Batal
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* --- MODAL 2: KONFIRMASI HAPUS AKUN --- */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative text-center">
-            <div className="w-14 h-14 bg-rose-500/5 text-rose-500 rounded-2xl flex items-center justify-center mb-5 mx-auto border border-rose-500/10">
-              <FiAlertTriangle size={24} />
-            </div>
-            
-            <h3 className="text-lg font-extrabold text-slate-900 tracking-tight mb-2">Hapus Akun Permanen?</h3>
-            <p className="text-xs sm:text-sm text-slate-500 mb-8 leading-relaxed font-semibold">
-              Apakah Anda yakin ingin menghapus akun ini? Segala data pelacakan yang berkaitan dengan akun <strong>{profileData.email}</strong> tidak akan bisa dipulihkan kembali setelah proses penghapusan dilakukan.
-            </p>
-
-            <div className="flex flex-col gap-2.5">
-              <button 
-                onClick={handleDeleteAccount}
-                disabled={isDeleting}
-                className="w-full bg-rose-600 text-white font-bold py-3 rounded-xl hover:bg-rose-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 text-xs uppercase tracking-wider"
-              >
-                {isDeleting ? <FiRefreshCw className="animate-spin" size={14}/> : <FiTrash2 size={14}/>}
-                {isDeleting ? 'Menghapus Akun...' : 'Ya, Hapus Permanen'}
-              </button>
-              <button 
-                onClick={() => setShowDeleteModal(false)}
-                disabled={isDeleting}
-                className="w-full bg-white text-slate-500 font-bold py-3 rounded-xl hover:bg-slate-50 border border-slate-200 transition-colors cursor-pointer disabled:opacity-50 text-xs uppercase tracking-wider"
-              >
-                Batal
-              </button>
-            </div>
-          </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
