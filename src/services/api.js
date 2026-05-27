@@ -142,6 +142,7 @@ export async function fetchAllJobs(params = {}) {
     minSalary = '', maxSalary = '',
     minAge = '', maxAge = '',
     education_level = '', gender = '',
+    job_type = '', work_system = '',
     page = 1, limit = 10
   } = params;
 
@@ -149,12 +150,16 @@ export async function fetchAllJobs(params = {}) {
   if (search)          query.append('search', search);
   if (city)            query.append('city', city);
   if (province)        query.append('province', province);
-  if (minSalary)       query.append('minSalary', minSalary);
-  if (maxSalary)       query.append('maxSalary', maxSalary);
-  if (minAge)          query.append('minAge', minAge);
-  if (maxAge)          query.append('maxAge', maxAge);
+  if (minSalary)       query.append('minSalary', String(minSalary));
+  if (maxSalary)       query.append('maxSalary', String(maxSalary));
+  if (minAge)          query.append('minAge', String(minAge));
+  if (maxAge)          query.append('maxAge', String(maxAge));
   if (education_level) query.append('education_level', education_level);
   if (gender)          query.append('gender', gender);
+  
+  if (job_type)        query.append('job_type', job_type);
+  if (work_system)     query.append('work_system', work_system);
+
   query.append('page', String(page));
   query.append('limit', String(limit));
 
@@ -167,8 +172,8 @@ export async function fetchAllJobs(params = {}) {
   if (!response.ok) throw new Error(result?.message || `Gagal mengambil daftar lowongan (HTTP ${response.status})`);
 
   return {
-    jobs: result.data,
-    pagination: result.pagination
+    jobs: result.data || [],
+    pagination: result.meta || result.pagination || { page, limit, total: 0 } 
   };
 }
 

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiSearch, FiMapPin, FiFilter,
   FiBriefcase, FiDollarSign, FiArrowRight,
-  FiX, FiXCircle
+  FiX, FiXCircle, FiCheckCircle, FiClock, FiInfo, FiFileText
 } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
 import { fetchAllJobs } from '../../services/api';
@@ -28,6 +28,8 @@ const staggerContainer = {
 
 export default function DashboardJobs() {
   const navigate = useNavigate();
+  // eslint-disable-next-line no-unused-vars
+  const isLoggedIn = !!localStorage.getItem('access_token');
 
   // State untuk efek mengetik teks berputar
   const [typedText, setTypedText] = useState('');
@@ -37,15 +39,25 @@ export default function DashboardJobs() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
 
-  // --- 2. STATE UNTUK FILTER ---
+  // Pagination (Setiap halaman dibatasi 10 lowongan)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const limit = 10; 
+  const [totalJobs, setTotalJobs] = useState(0);
+
+  // --- 2. STATE UNTUK FILTER INSTAN (Diselaraskan persis dengan JobList) ---
   const [filters, setFilters] = useState({
     search: '',
     city: '',
+    province: '',
+    minSalary: '',
+    maxSalary: '',
     education_level: '',
-    job_type: '',   // hanya untuk UI, tidak dikirim ke API
-    sort: 'latest', // hanya untuk UI, tidak dikirim ke API
+    gender: '',
+    job_type: '',
+    work_system: '',
+    sort: 'latest'
   });
 
   // State lokal input teks (di-debounce sebelum masuk filters)
@@ -88,12 +100,16 @@ export default function DashboardJobs() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // --- 3. DEBOUNCE SEARCH & LOCATION ---
+  // --- 3. DEBOUNCE SEARCH & LOCATION (Hanya untuk input teks mengetik) ---
   useEffect(() => {
     const timer = setTimeout(() => {
-      setFilters(prev => ({ ...prev, search: searchInput, city: locationInput }));
-      setPagination(prev => ({ ...prev, page: 1 })); // ✅ reset ke halaman 1
-    }, 800);
+      setFilters(prev => ({
+        ...prev,
+        search: searchInput,
+        city: locationInput
+      }));
+      setCurrentPage(1); // reset ke halaman 1 saat mengetik pencarian
+    }, 600);
     return () => clearTimeout(timer);
   }, [searchInput, locationInput]);
 
@@ -104,23 +120,32 @@ export default function DashboardJobs() {
       setError(null);
       try {
         const result = await fetchAllJobs({
-          page: pagination.page,
-          limit: pagination.limit,
-          search: filters.search,
-          city: filters.city,
-          education_level: filters.education_level,
-          // job_type & sort tidak ada di swagger — tidak dikirim ke API
+          search: filters.search || undefined,
+          city: filters.city || undefined,
+          province: filters.province || undefined,
+          minSalary: filters.minSalary ? parseInt(filters.minSalary) : undefined,
+          maxSalary: filters.maxSalary ? parseInt(filters.maxSalary) : undefined,
+          education_level: filters.education_level || undefined,
+          gender: filters.gender || undefined,
+          job_type: filters.job_type || undefined,
+          work_system: filters.work_system || undefined,
+          page: currentPage,
+          limit
         });
 
-        // Append jika "Muat Lebih Banyak", replace jika filter/page baru
-        if (pagination.page > 1) {
-          setJobs(prev => [...prev, ...(result.jobs || [])]);
-        } else {
-          setJobs(result.jobs || []);
-        }
+        // Ekstraksi data lowongan murni dan meta dari Swagger
+        const jobsData = result?.jobs || result?.data || [];
+        setJobs(Array.isArray(jobsData) ? jobsData : []);
 
-        if (result.pagination) {
-          setPagination(prev => ({ ...prev, total: result.pagination.total || 0 }));
+        const paginationData = result?.pagination || result?.meta;
+        if (paginationData) {
+          const totalCount = paginationData.total || 0;
+          setTotalJobs(totalCount);
+          setTotalPages(Math.ceil(totalCount / limit) || 1);
+        } else {
+          const totalCount = result?.total || jobsData.length || 0;
+          setTotalJobs(totalCount);
+          setTotalPages(Math.ceil(totalCount / limit) || 1);
         }
 
       } catch (err) {
@@ -131,29 +156,51 @@ export default function DashboardJobs() {
     };
 
     loadJobs();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, pagination.page]);
+  }, [filters, currentPage, limit]);
 
-  // --- 5. HANDLER FILTER ---
+  // --- 5. HANDLER INPUT & FILTER INSTAN ---
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value }));
+    setCurrentPage(1); // Reset halaman ke 1 saat input gaji diubah
+  };
+
   const handleCheckboxFilter = useCallback((type, value) => {
     setFilters(prev => ({
       ...prev,
       [type]: prev[type] === value ? '' : value,
     }));
-    setPagination(prev => ({ ...prev, page: 1 }));
+    setCurrentPage(1); // Reset halaman ke 1 saat filter sidebar dicentang
   }, []);
 
   const handleClearFilters = useCallback(() => {
     setSearchInput('');
     setLocationInput('');
-    setFilters({ search: '', city: '', job_type: '', education_level: '', sort: 'latest' });
-    setPagination({ page: 1, limit: 10, total: 0 });
+    setFilters({ 
+      search: '', city: '', province: '', minSalary: '', maxSalary: '', 
+      education_level: '', gender: '', job_type: '', work_system: '', sort: 'latest' 
+    });
+    setCurrentPage(1);
   }, []);
 
-  const hasActiveFilters =
-    filters.search || filters.city || filters.job_type || filters.education_level;
+  const hasActiveFilters = 
+    filters.search || filters.city || filters.province || filters.minSalary || 
+    filters.maxSalary || filters.education_level || filters.gender || 
+    filters.job_type || filters.work_system;
 
-  // --- 6. FORMAT RUPIAH ---
+  // --- LOGIKA PENGURUTAN DI SISI KLIEN (CLIENT-SIDE SORT) ---
+  const getSortedJobs = () => {
+    if (!Array.isArray(jobs)) return [];
+    const jobsCopy = [...jobs];
+    if (filters.sort === 'salary') {
+      return jobsCopy.sort((a, b) => (b.salary_max || 0) - (a.salary_max || 0));
+    }
+    return jobsCopy.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  };
+
+  const sortedJobs = getSortedJobs();
+
+  // eslint-disable-next-line no-unused-vars
   const formatRupiah = (number) =>
     new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -166,7 +213,7 @@ export default function DashboardJobs() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto pb-12 selection:bg-blue-500/10 selection:text-blue-600 animate-fadeIn">
+    <div className="max-w-7xl mx-auto pb-12 font-sans text-slate-800 animate-fadeIn">
 
       {/* --- PAGE HEADER --- */}
       <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-3 tracking-tight text-left">
@@ -247,9 +294,9 @@ export default function DashboardJobs() {
             <FiFilter /> Filter Cepat:
           </div>
           <button
-            onClick={() => handleCheckboxFilter('job_type', 'Remote')}
+            onClick={() => handleCheckboxFilter('work_system', 'remote')}
             className={`px-4 py-1.5 rounded-full text-xs font-bold shrink-0 border transition-all ${
-              filters.job_type === 'Remote'
+              filters.work_system === 'remote'
                 ? 'bg-blue-500/5 text-blue-600 border-blue-500/20 font-extrabold'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
@@ -257,9 +304,9 @@ export default function DashboardJobs() {
             Remote
           </button>
           <button
-            onClick={() => handleCheckboxFilter('education_level', 'S1')}
+            onClick={() => handleCheckboxFilter('education_level', 's1')}
             className={`px-4 py-1.5 rounded-full text-xs font-bold shrink-0 border transition-all ${
-              filters.education_level === 'S1'
+              filters.education_level === 's1'
                 ? 'bg-blue-500/5 text-blue-600 border-blue-500/20 font-extrabold'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
@@ -267,9 +314,9 @@ export default function DashboardJobs() {
             S1
           </button>
           <button
-            onClick={() => handleCheckboxFilter('education_level', 'SMA/SMK')}
+            onClick={() => handleCheckboxFilter('education_level', 'sma')}
             className={`px-4 py-1.5 rounded-full text-xs font-bold shrink-0 border transition-all ${
-              filters.education_level === 'SMA/SMK'
+              filters.education_level === 'sma'
                 ? 'bg-blue-500/5 text-blue-600 border-blue-500/20 font-extrabold'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
@@ -283,26 +330,34 @@ export default function DashboardJobs() {
       <div className="flex flex-col lg:flex-row gap-8">
 
         {/* SIDEBAR FILTER */}
-        <aside className="w-full lg:w-1/4 space-y-6 shrink-0">
+        <aside className="w-full lg:w-1/4 space-y-6 shrink-0 text-left">
           <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/60 shadow-sm sticky top-24">
+            
+            {/* TIPE PEKERJAAN */}
             <h3 className="font-extrabold text-slate-900 mb-4 text-xs uppercase tracking-wider">
               Tipe Pekerjaan
             </h3>
             <div className="space-y-2.5">
-              {['Full-time', 'Part-time', 'Kontrak', 'Freelance', 'Remote'].map((type) => (
-                <label key={type} className="flex items-center gap-3 cursor-pointer group">
+              {[
+                { slug: 'penuh-waktu', label: 'Penuh Waktu' },
+                { slug: 'kontrak', label: 'Kontrak' },
+                { slug: 'magang', label: 'Magang' },
+                { slug: 'paruh-waktu', label: 'Paruh Waktu' },
+                { slug: 'freelance', label: 'Freelance' }
+              ].map((item) => (
+                <label key={item.slug} className="flex items-center gap-3 cursor-pointer group">
                   <input
                     type="checkbox"
-                    checked={filters.job_type === type}
-                    onChange={() => handleCheckboxFilter('job_type', type)}
+                    checked={filters.job_type === item.slug}
+                    onChange={() => handleCheckboxFilter('job_type', item.slug)}
                     className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/30 cursor-pointer"
                   />
                   <span
                     className={`text-sm group-hover:text-slate-950 transition-colors ${
-                      filters.job_type === type ? 'text-blue-600 font-bold' : 'text-slate-500 font-semibold'
+                      filters.job_type === item.slug ? 'text-blue-600 font-bold' : 'text-slate-500 font-semibold'
                     }`}
                   >
-                    {type}
+                    {item.label}
                   </span>
                 </label>
               ))}
@@ -310,35 +365,109 @@ export default function DashboardJobs() {
 
             <div className="w-full h-px bg-slate-100 my-5" />
 
+            {/* SISTEM KERJA */}
             <h3 className="font-extrabold text-slate-900 mb-4 text-xs uppercase tracking-wider">
-              Pendidikan Minimal
+              Sistem Kerja
             </h3>
             <div className="space-y-2.5">
-              {['SMA/SMK', 'D3', 'S1', 'S2'].map((edu) => (
-                <label key={edu} className="flex items-center gap-3 cursor-pointer group">
+              {[
+                { slug: 'di-kantor', label: 'Kerja di Kantor' },
+                { slug: 'remote', label: 'Remote / Dari Rumah' },
+                { slug: 'hybrid', label: 'Hybrid' }
+              ].map((item) => (
+                <label key={item.slug} className="flex items-center gap-3 cursor-pointer group">
                   <input
                     type="checkbox"
-                    checked={filters.education_level === edu}
-                    onChange={() => handleCheckboxFilter('education_level', edu)}
+                    checked={filters.work_system === item.slug}
+                    onChange={() => handleCheckboxFilter('work_system', item.slug)}
                     className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/30 cursor-pointer"
                   />
                   <span
                     className={`text-sm group-hover:text-slate-950 transition-colors ${
-                      filters.education_level === edu ? 'text-blue-600 font-bold' : 'text-slate-500 font-semibold'
+                      filters.work_system === item.slug ? 'text-blue-600 font-bold' : 'text-slate-500 font-semibold'
                     }`}
                   >
-                    {edu}
+                    {item.label}
                   </span>
                 </label>
               ))}
+            </div>
+
+            <div className="w-full h-px bg-slate-100 my-5" />
+
+            {/* PENDIDIKAN MINIMAL */}
+            <h3 className="font-extrabold text-slate-900 mb-4 text-xs uppercase tracking-wider">
+              Pendidikan Minimal
+            </h3>
+            <div className="space-y-2.5">
+              {[
+                { slug: 'sma', label: 'Minimal SMA/SMK' },
+                { slug: 'd3', label: 'Minimal Diploma (D1-D4)' },
+                { slug: 's1', label: 'Minimal Sarjana (S1)' },
+                { slug: 's2', label: 'Minimal Pasca Sarjana (S2)' },
+                { slug: 'semua', label: 'Semua Jenjang' }
+              ].map((item) => (
+                <label key={item.slug} className="flex items-center gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={filters.education_level === item.slug}
+                    onChange={() => handleCheckboxFilter('education_level', item.slug)}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/30 cursor-pointer"
+                  />
+                  <span
+                    className={`text-sm group-hover:text-slate-950 transition-colors ${
+                      filters.education_level === item.slug ? 'text-blue-600 font-bold' : 'text-slate-500 font-semibold'
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            <div className="w-full h-px bg-slate-100 my-5" />
+
+            {/* PERSYARATAN GENDER */}
+            <h3 className="font-extrabold text-slate-900 mb-4 text-xs uppercase tracking-wider">Gender</h3>
+            <div className="space-y-2.5">
+              {[
+                { slug: 'laki-laki', label: 'Laki-laki saja' },
+                { slug: 'perempuan', label: 'Perempuan saja' },
+                { slug: 'semua', label: 'Tanpa Ketentuan' }
+              ].map((item) => (
+                <label key={item.slug} className="flex items-center gap-3 cursor-pointer group">
+                  <input 
+                    type="checkbox" 
+                    checked={filters.gender === item.slug}
+                    onChange={() => handleCheckboxFilter('gender', item.slug)}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/30 cursor-pointer"
+                  />
+                  <span className={`text-sm group-hover:text-slate-950 transition-colors ${filters.gender === item.slug ? 'text-blue-600 font-bold' : 'text-slate-500 font-semibold'}`}>{item.label}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="w-full h-px bg-slate-100 my-5" />
+
+            {/* GAJI MINIMAL & MAKSIMAL */}
+            <h3 className="font-extrabold text-slate-900 mb-4 text-xs uppercase tracking-wider">Gaji (IDR)</h3>
+            <div className="space-y-3">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs text-slate-400 font-bold">Rp</div>
+                <input type="number" name="minSalary" placeholder="Min. Gaji" value={filters.minSalary} onChange={handleInputChange} className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-4 ring-blue-500/5 focus:border-blue-500 outline-none transition-all" />
+              </div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs text-slate-400 font-bold">Rp</div>
+                <input type="number" name="maxSalary" placeholder="Max. Gaji" value={filters.maxSalary} onChange={handleInputChange} className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-4 ring-blue-500/5 focus:border-blue-500 outline-none transition-all" />
+              </div>
             </div>
           </div>
 
           {/* Banner Edit CV */}
           <div className="bg-gradient-to-br from-blue-500/5 to-indigo-500/5 border border-blue-500/10 p-6 rounded-3xl text-center shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 bg-white opacity-40 rounded-full translate-x-1/3 -translate-y-1/3" />
-            <div className="w-11 h-11 bg-white text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-md border border-slate-100 relative z-10">
-              <BsStars size={18} />
+            <div className="w-12 h-12 bg-white text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-md border border-slate-100 relative z-10">
+              <BsStars size={20} />
             </div>
             <h4 className="font-bold text-slate-900 mb-2 relative z-10 leading-tight">Tingkatkan Skor Anda</h4>
             <p className="text-xs text-slate-500 mb-5 relative z-10 leading-relaxed font-semibold">
@@ -359,14 +488,14 @@ export default function DashboardJobs() {
           {/* Header jumlah & sort */}
           <div className="flex justify-between items-center mb-6">
             <h2 className="font-extrabold text-slate-900 text-base">
-              {loading && pagination.page === 1
+              {loading && currentPage === 1
                 ? 'Mencari...'
-                : `${pagination.total || jobs.length} Lowongan Ditemukan`}
+                : `${totalJobs} Lowongan Ditemukan`}
             </h2>
-            <div className="flex items-center gap-2 text-xs font-bold bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-sm">
+            <div className="flex items-center gap-2 text-xs font-bold bg-white border border-gray-200 px-3 py-1.5 rounded-lg shadow-sm">
               <span className="text-slate-400">Urutkan:</span>
               <select
-                className="font-extrabold text-slate-700 bg-transparent outline-none cursor-pointer"
+                className="font-bold text-slate-700 bg-transparent outline-none cursor-pointer"
                 value={filters.sort}
                 onChange={(e) =>
                   setFilters((prev) => ({ ...prev, sort: e.target.value }))
@@ -386,13 +515,13 @@ export default function DashboardJobs() {
           )}
 
           {/* Loading awal (page 1) */}
-          {loading && pagination.page === 1 ? (
+          {loading && currentPage === 1 ? (
             <div className="flex flex-col items-center justify-center py-32 bg-white rounded-3xl border border-slate-200/60 shadow-sm">
               <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4" />
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Menyinkronkan lowongan...</p>
             </div>
 
-          ) : jobs.length === 0 && !error ? (
+          ) : sortedJobs.length === 0 && !error ? (
               <div className="text-center py-24 bg-white rounded-3xl border border-slate-200/60 shadow-sm flex flex-col items-center p-6">
                 <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mb-5 border border-slate-100">
                   <FiSearch size={24} />
@@ -417,7 +546,7 @@ export default function DashboardJobs() {
               variants={staggerContainer}
               className="space-y-4"
             >
-              {jobs.map((job) => (
+              {sortedJobs.map((job) => (
                 <motion.div
                   key={job.id}
                   variants={fadeInUp}
@@ -440,7 +569,7 @@ export default function DashboardJobs() {
                           <span className="flex items-center gap-1.5 font-bold text-slate-700">
                             <FiBriefcase className="text-slate-400" /> {job.company_name}
                           </span>
-                          <span className="w-1 h-1 bg-slate-300 rounded-full hidden sm:block" />
+                          <span className="w-1.5 h-1.5 bg-gray-300 rounded-full hidden sm:block" />
                           <span className="flex items-center gap-1.5 font-medium">
                             <FiMapPin className="text-slate-400" /> {job.city || 'Indonesia'}
                           </span>
@@ -449,46 +578,79 @@ export default function DashboardJobs() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 mb-4 mt-1">
-                    <span className="bg-emerald-500/5 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-xl border border-emerald-500/10 flex items-center gap-1.5 shadow-sm">
+                  {/* DATA PILAR PENTING */}
+                  <div className="flex flex-wrap gap-2 mb-5 mt-1">
+                    <span className="bg-emerald-500/5 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-lg border border-emerald-500/10 flex items-center gap-1.5 shadow-sm">
                       <FiDollarSign size={13} className="text-emerald-500 shrink-0" />
-                      {job.salary_min > 0 && job.salary_max > 0
-                        ? `${formatRupiah(job.salary_min)} – ${formatRupiah(job.salary_max)}`
-                        : 'Gaji Kompetitif'}
+                      {job.salary_raw || 'Gaji Kompetitif'}
                     </span>
+                    {job.job_type && (
+                      <span className="bg-slate-50 text-slate-500 text-[11px] font-bold px-3 py-1.5 rounded-lg border border-slate-200/60 shadow-sm flex items-center gap-1.5">
+                        <FiBriefcase size={12} className="text-slate-400 shrink-0" /> {job.job_type}
+                      </span>
+                    )}
+                    {job.work_system && (
+                      <span className="bg-blue-500/5 text-blue-700 text-[11px] font-bold px-3 py-1.5 rounded-lg border border-blue-500/10 shadow-sm flex items-center gap-1.5 capitalize">
+                        <FiInfo size={12} className="text-blue-500 shrink-0" /> {job.work_system}
+                      </span>
+                    )}
+                    {job.education_level && (
+                      <span className="bg-purple-500/5 text-purple-700 text-[11px] font-bold px-3 py-1.5 rounded-lg border border-purple-500/10 shadow-sm flex items-center gap-1.5">
+                        <FiFileText size={12} className="text-purple-500 shrink-0" /> {job.education_level}
+                      </span>
+                    )}
                   </div>
 
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pt-4 border-t border-slate-100 gap-4 mt-auto">
+                  {/* KEAHLIAN / SKILLS UTAMA */}
+                  {job.skills && job.skills.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-5 text-left">
+                      {job.skills.slice(0, 4).map((skill, idx) => (
+                        <span key={idx} className="bg-white border border-slate-200 text-slate-400 text-[10px] font-extrabold px-2.5 py-1 rounded-lg">
+                          {skill}
+                        </span>
+                      ))}
+                      {job.skills.length > 4 && (
+                        <span className="text-slate-400 text-[10px] font-extrabold px-2 py-1 bg-slate-50 rounded-lg border border-slate-200">
+                          +{job.skills.length - 4} Lainnya
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pt-4 border-t border-gray-50 gap-4 mt-auto">
                     <div className="flex items-center gap-4 text-xs">
-                      <span className="font-bold flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-500/5 text-blue-600 border border-blue-500/10 shadow-sm">
+                      <span className="font-bold flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/5 text-blue-600 border border-blue-500/10 shadow-sm">
                         <BsStars /> Analisis Kecocokan CV Tersedia
                       </span>
                     </div>
-                    <button className="bg-white text-blue-600 border border-blue-500/10 hover:border-blue-500 px-5 py-2 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 group-hover:bg-blue-600 group-hover:text-white shadow-sm cursor-pointer">
-                      Lihat Detail <FiArrowRight className="group-hover:translate-x-0.5 transition-transform" />
-                    </button>
+                    
+                    {/* TANGGAL RILIS LOWONGAN */}
+                    <div className="flex items-center gap-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                      <span className="flex items-center gap-1.5"><FiClock /> {job.created_at ? new Date(job.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</span>
+                    </div>
                   </div>
                 </motion.div>
               ))}
             </motion.div>
           )}
 
-          {/* Loading saat "Muat Lebih Banyak" (page > 1) */}
-          {loading && pagination.page > 1 && (
-            <div className="text-center py-12">
-              <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Memuat lowongan...</p>
-            </div>
-          )}
-
-          {/* Tombol Muat Lebih Banyak */}
-          {!loading && jobs.length > 0 && jobs.length < pagination.total && (
-            <div className="mt-10 text-center">
-              <button
-                onClick={() => setPagination((prev) => ({ ...prev, page: prev.page + 1 }))}
-                className="bg-white border border-slate-200 text-slate-700 font-bold px-8 py-3.5 rounded-2xl shadow-sm hover:bg-slate-50 transition-colors text-xs flex items-center justify-center mx-auto gap-2 cursor-pointer uppercase tracking-wider hover:border-slate-300"
+          {/* Kontrol Paginasi Halaman */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-10 p-4 bg-white/70 backdrop-blur-md rounded-2xl border border-slate-200/60 shadow-sm">
+              <button 
+                disabled={currentPage === 1} 
+                onClick={() => { setCurrentPage(prev => Math.max(1, prev - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
-                Muat Lebih Banyak <FiArrowRight size={15} />
+                Sebelumnya
+              </button>
+              <span className="px-3 py-1 text-slate-500 text-xs font-bold">Halaman <strong className="text-slate-900">{currentPage}</strong> dari {totalPages}</span>
+              <button 
+                disabled={currentPage === totalPages} 
+                onClick={() => { setCurrentPage(prev => Math.min(totalPages, prev + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                Selanjutnya
               </button>
             </div>
           )}
