@@ -91,8 +91,8 @@ export default function About() {
     { id: 'CDCC284D6X0604', name: 'Nadhia Della P. S.', role: 'Data Scientist', img: '/profile/foto_della.jpg', ig:'https://www.instagram.com/nadhiadellaa?igsh=cmhzdWNkYnlsZDFr', linkedin:'https://www.linkedin.com/in/nadhiadellapuspita?utm_source=share_via&utm_content=profile&utm_medium=member_android', github:'https://github.com/NadhiaDella' },
     { id: 'CFCC284D6X2831', name: 'Mutiara Angelita M.', role: 'Full Stack Developer', img: '/profile/foto_angel.jpg', ig:'https://www.instagram.com/mutiangell_', linkedin:'https://www.linkedin.com/in/mutiangel', github:'https://github.com/kaenjie' },
     { id: 'CFCC614D6Y0867', name: 'Ahmad Sefriadi', role: 'Full Stack Developer', img: '/profile/foto_asep.jpg', ig:'https://www.instagram.com/sefriadiahmad', linkedin:'https://www.linkedin.com/in/sefriadiahmad', github:'https://github.com/sefriadiahmad' },
-    { id: 'CACC012D6Y0477', name: 'M. Arifbillah Kamil', role: 'AI Engineer', img: '/profile/foto_abbil.jpg', ig:'https://www.instagram.com/arifbillahkamil', linkedin:'https://www.linkedin.com/in/arifbillahkamil', github:'https://github.com/ArifbillahKamil' },
-    { id: 'CACC715D6Y0952', name: 'Ulil Noor Absor', role: 'AI Engineer', img: '/profile/foto_ulil.jpg', ig:'https://www.instagram.com/ulil_na/', linkedin:'https://www.linkedin.com/in/ulil-noor-absor', github:'https://github.com/ulillearn' },
+    { id: 'CACC012D6Y0477', name: 'M. Arifbillah Kamil', role: 'AI Engineer', img: '/profile/foto_abbil.webp', ig:'https://www.instagram.com/arifbillahkamil', linkedin:'https://www.linkedin.com/in/arifbillahkamil', github:'https://github.com/ArifbillahKamil' },
+    { id: 'CACC715D6Y0952', name: 'Ulil Noor Absor', role: 'AI Engineer', img: '/profile/foto_ulil.jpeg', ig:'https://www.instagram.com/ulil_na/', linkedin:'https://www.linkedin.com/in/ulil-noor-absor', github:'https://github.com/ulillearn' },
   ];
 
   return (

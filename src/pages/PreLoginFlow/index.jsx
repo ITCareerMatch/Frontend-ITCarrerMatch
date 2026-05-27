@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiUploadCloud, FiEdit2, FiFileText, FiCheckCircle, 
-  FiArrowLeft, FiZap, FiTarget, FiRefreshCw, FiShield, FiBriefcase
+  FiArrowLeft, FiZap, FiTarget, FiRefreshCw, FiShield, FiBriefcase, FiX
 } from 'react-icons/fi';
 import { BsStars, BsLightbulbFill } from 'react-icons/bs';
 import { uploadCV } from '../../services/api';
@@ -225,12 +225,27 @@ export default function PreLoginFlow() {
                           className="hidden"
                         />
                         {file ? (
-                          <div className="flex items-center gap-4 bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm w-full max-w-sm cursor-default" onClick={(e) => e.preventDefault()}>
+                          <div 
+                            className="flex items-center gap-4 bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm w-full max-w-sm cursor-default" 
+                            onClick={(e) => e.preventDefault()}
+                          >
                             <div className="bg-blue-50 p-3 rounded-xl text-blue-600 border border-blue-100"><FiFileText size={22} /></div>
                             <div className="text-left flex-1 truncate">
                               <p className="font-bold text-sm text-slate-900 truncate">{file.name}</p>
                               <p className="text-[10px] text-emerald-600 font-extrabold flex items-center gap-1 mt-1 uppercase tracking-wider"><FiCheckCircle /> Siap dianalisis</p>
                             </div>
+                            {/* Tombol Silang Baru (Membatalkan file & Stop gelembung klik) */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                setFile(null);
+                              }}
+                              className="text-slate-400 hover:text-rose-600 p-1.5 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer shrink-0"
+                            >
+                              <FiX size={18} />
+                            </button>
                           </div>
                         ) : (
                           <>
