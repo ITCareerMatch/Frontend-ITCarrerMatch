@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiSearch, FiMapPin, FiMenu, FiX, FiBriefcase, FiFilter,
   FiDollarSign, FiCheckCircle, FiFileText, FiXCircle, FiClock, FiArrowRight
@@ -7,10 +9,31 @@ import {
 import { BsStars } from 'react-icons/bs';
 import { fetchAllJobs } from '../../services/api';
 
+// Animasi Konfigurasi Reusable
+const fadeInUp = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.65, ease: [0.16, 1, 0.3, 1] } }
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+};
+
 export default function JobList() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const isLoggedIn = !!localStorage.getItem('access_token');
+
+  // State untuk efek mengetik "Tanpa Batasan"
+  const [typedText, setTypedText] = useState('');
+  const fullText = "Tanpa Batasan";
 
   // --- 1. STATE UNTUK DATA & LOADING ---
   const [jobs, setJobs] = useState([]);
@@ -36,6 +59,55 @@ export default function JobList() {
 
   // State yang dikirim ke API (Diperbarui setelah debounce)
   const [filters, setFilters] = useState(inputs);
+
+  // --- Deteksi Scroll untuk Navbar ---
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 15) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // --- Efek Mengetik "Tanpa Batasan" (Typewriter loop) ---
+  useEffect(() => {
+    let currentText = '';
+    let isDeleting = false;
+    let i = 0;
+    let timer;
+
+    const type = () => {
+      if (!isDeleting) {
+        currentText = fullText.slice(0, i + 1);
+        setTypedText(currentText);
+        i++;
+        if (i === fullText.length) {
+          isDeleting = true;
+          timer = setTimeout(type, 2000); // Tahan kata selama 2 detik di akhir
+        } else {
+          timer = setTimeout(type, 130); // Kecepatan mengetik
+        }
+      } else {
+        currentText = fullText.slice(0, i - 1);
+        setTypedText(currentText);
+        i--;
+        if (i === 0) {
+          isDeleting = false;
+          timer = setTimeout(type, 600); // Jeda sebelum mengetik ulang
+        } else {
+          timer = setTimeout(type, 60); // Kecepatan menghapus kata
+        }
+      }
+    };
+
+    type();
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // --- 3. DEBOUNCE EFFECT ---
   useEffect(() => {
@@ -109,29 +181,45 @@ export default function JobList() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/50 font-sans text-gray-800 pb-20">
+    <div className="min-h-screen bg-white font-sans text-slate-800 pb-20 relative selection:bg-blue-500/10 selection:text-blue-600">
       
-      {/* --- NAVBAR --- */}
-      <header className="flex justify-between items-center py-4 px-6 md:px-12 lg:px-16 border-b border-gray-100 bg-white sticky top-0 z-50">
-        <div className="flex items-center gap-2 font-bold text-xl text-gray-900 cursor-pointer" onClick={() => navigate('/')}>
-          <div>
-            <img src="/images/logo-itcareermatch.png" alt="ITCareerMatch Logo" className="w-15 h-15 object-contain" />
+      {/* Dekorasi Grid & Radial Glow */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-[0.22] -z-10 pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[550px] bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-100/20 via-transparent to-transparent -z-10 pointer-events-none" />
+
+      {/* --- FIXED NAVBAR --- */}
+      <motion.header 
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className={`flex justify-between items-center h-20 px-6 md:px-12 lg:px-16 fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
+          isScrolled 
+            ? 'bg-white/85 backdrop-blur-md border-b border-slate-200/60 shadow-md shadow-slate-100/30' 
+            : 'bg-white/40 backdrop-blur-sm border-b border-transparent'
+        }`}
+      >
+        <div className="flex items-center gap-3 font-bold text-xl text-slate-900 cursor-pointer group" onClick={() => navigate('/')}>
+          <div className="relative">
+            <div className="absolute -inset-1 rounded-2xl opacity-20 blur-md group-hover:opacity-40 transition-opacity duration-300"></div>
+            <img src="/images/logo-itcareermatch.png" alt="ITCareerMatch Logo" className="w-11 h-11 object-contain relative rounded-2xl transition-transform duration-500 group-hover:rotate-6" />
           </div>
-          ITCareerMatch
+          <span className="bg-gradient-to-r from-slate-950 to-slate-800 bg-clip-text text-transparent font-extrabold tracking-tight">
+            ITCareerMatch
+          </span>
         </div>
         
         {/* Menu Desktop */}
-        <nav className="hidden md:flex gap-8 text-sm font-medium text-gray-600">
-          <a onClick={() => navigate('/')} className="hover:text-blue-600 transition-colors cursor-pointer">Beranda</a>
-          <a onClick={() => navigate('/lowongan')} className="text-blue-600 font-bold transition-colors cursor-pointer">Daftar Lowongan</a>
-          <a onClick={() => navigate('/tentang-kami')} className="hover:text-blue-600 transition-colors cursor-pointer">Tentang Kami</a>
+        <nav className="hidden md:flex gap-8 text-sm font-semibold text-slate-600">
+          <a onClick={() => navigate('/')} className="hover:text-blue-600 transition-colors cursor-pointer tracking-tight">Beranda</a>
+          <a onClick={() => navigate('/lowongan')} className="text-blue-600 font-extrabold transition-colors cursor-pointer tracking-tight">Daftar Lowongan</a>
+          <a onClick={() => navigate('/tentang-kami')} className="hover:text-blue-600 transition-colors cursor-pointer tracking-tight">Tentang Kami</a>
         </nav>
         
         {/* Tombol Mobile Toggle */}
         <button
           type="button"
           onClick={() => setMobileMenuOpen((prev) => !prev)}
-          className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+          className="md:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
         >
           {mobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
         </button>
@@ -141,7 +229,7 @@ export default function JobList() {
           {isLoggedIn ? (
             <button
               onClick={() => navigate('/dashboard')}
-              className="bg-white text-gray-700 px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-50 border border-gray-200 shadow-sm transition-colors cursor-pointer"
+              className="bg-white text-slate-700 px-5 py-2.5 rounded-2xl text-sm font-bold hover:bg-slate-50 border border-slate-200 shadow-sm transition-all cursor-pointer hover:border-slate-300 active:scale-95"
             >
               Ke Dashboard
             </button>
@@ -151,98 +239,123 @@ export default function JobList() {
             </button>
           )}
           <button 
-            onClick={() => navigate('/analisis-baru')}
-            className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 shadow-md shadow-blue-200 transition-colors cursor-pointer flex items-center gap-2"
+            onClick={() => navigate('/cek-skor')}
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-2xl text-sm font-bold hover:opacity-95 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2"
           >
             <BsStars /> Cek Skor CV
           </button>
         </div>
-      </header>
+      </motion.header>
 
       {/* --- MOBILE MENU --- */}
-      {mobileMenuOpen && (
-        <div className="fixed md:hidden inset-x-0 top-[73px] z-40 bg-white border-b border-gray-100 px-8 py-6 shadow-xl max-h-[calc(100vh-4rem)] overflow-y-auto"> 
-          <div className="flex flex-col gap-5 text-sm font-bold text-gray-700 items-start bg-white">
-            <a onClick={() => { setMobileMenuOpen(false); navigate('/'); }} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-gray-50 pb-3">Beranda</a>
-            <a onClick={() => { setMobileMenuOpen(false); navigate('/lowongan'); }} className="block text-blue-600 transition-colors cursor-pointer w-full border-b border-gray-50 pb-3">Daftar Lowongan</a>
-            <a onClick={() => { setMobileMenuOpen(false); navigate('/tentang-kami'); }} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-gray-50 pb-3">Tentang Kami</a>
-            <div className="flex flex-col gap-3 pt-2 w-full">
-              {isLoggedIn ? (
-                <button onClick={() => { setMobileMenuOpen(false); navigate('/dashboard'); }} className="w-full bg-white text-gray-700 px-4 py-3 rounded-xl border border-gray-200 transition-colors">Dashboard</button>
-              ) : (
-                <button onClick={() => { setMobileMenuOpen(false); navigate('/login'); }} className="w-full text-center text-gray-700 px-4 py-3 rounded-xl hover:bg-gray-50 transition-colors border border-gray-200 bg-gray-50">Masuk</button>
-              )}
-              <button onClick={() => { setMobileMenuOpen(false); navigate('/analisis-baru'); }} className="w-full bg-blue-600 text-white px-4 py-3 rounded-xl hover:bg-blue-700 transition-colors flex justify-center items-center gap-2"><BsStars /> Cek Skor CV</button>
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="fixed md:hidden inset-x-0 top-20 z-40 bg-white border-b border-slate-200/60 px-8 py-6 shadow-xl max-h-[calc(100vh-5rem)] overflow-y-auto"
+          > 
+            <div className="flex flex-col gap-4 text-sm font-bold text-slate-700 items-start bg-white">
+              <a onClick={() => { setMobileMenuOpen(false); navigate('/'); }} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-slate-50 pb-3">Beranda</a>
+              <a onClick={() => { setMobileMenuOpen(false); navigate('/lowongan'); }} className="block text-blue-600 transition-colors cursor-pointer w-full border-b border-slate-50 pb-3">Daftar Lowongan</a>
+              <a onClick={() => { setMobileMenuOpen(false); navigate('/tentang-kami'); }} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-slate-50 pb-3">Tentang Kami</a>
+              <div className="flex flex-col gap-3 pt-3 w-full">
+                {isLoggedIn ? (
+                  <button onClick={() => { setMobileMenuOpen(false); navigate('/dashboard'); }} className="w-full bg-slate-50 text-slate-700 px-4 py-3 rounded-xl border border-slate-200 transition-colors font-bold">Ke Dashboard</button>
+                ) : (
+                  <button onClick={() => { setMobileMenuOpen(false); navigate('/login'); }} className="w-full text-center text-slate-700 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors border border-slate-200 font-bold">Masuk</button>
+                )}
+                <button onClick={() => { setMobileMenuOpen(false); navigate('/analisis-baru'); }} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-xl hover:bg-blue-700 transition-colors flex justify-center items-center gap-2 font-bold"><BsStars /> Cek Skor CV</button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* --- HERO & SEARCH SECTION --- */}
-      <section className="bg-white pt-10 pb-12 px-6 md:px-12 lg:px-16 border-b border-gray-100">
+      <section className="pt-32 pb-12 px-6 md:px-12 lg:px-16 border-b border-slate-100">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-4 tracking-tight">
+          <motion.h1 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight"
+          >
             Eksplorasi Karir Impianmu <br className="hidden md:block"/>
-            <span className="text-blue-600">Tanpa Batasan</span>
-          </h1>
-          <p className="text-gray-500 mb-8 max-w-2xl text-lg">
-            Temukan ribuan lowongan terbaru. Ketik posisi atau perusahaan yang kamu inginkan, dan biarkan AI kami membantu mencocokkannya dengan CV-mu.
-          </p>
+            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent inline-block min-w-[280px]">
+              {typedText}<span className="text-blue-600 animate-pulse font-light ml-0.5">|</span>
+            </span>
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-slate-500 mb-8 max-w-2xl text-base font-medium"
+          >
+            Temukan lowongan pekerjaan terbaru secara akurat. Masukkan keahlian atau posisi yang ingin dituju, dan biarkan AI mencocokkannya dengan CV Anda.
+          </motion.p>
           
-          <div className="bg-white p-2 rounded-3xl shadow-sm border border-gray-200 flex flex-col md:flex-row gap-2 max-w-4xl relative">
-            <div className="flex-1 flex items-center px-4 py-3 bg-gray-50 rounded-2xl border border-transparent focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 ring-blue-100 transition-all relative">
-              <FiSearch className="text-gray-400 mr-3 shrink-0" size={20}/>
+          <motion.div 
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.15 }}
+            className="bg-white/70 backdrop-blur-md p-2.5 rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-200 flex flex-col md:flex-row gap-3 max-w-4xl relative"
+          >
+            <div className="flex-1 flex items-center px-4 py-3 bg-slate-50/70 rounded-2xl border border-transparent focus-within:border-blue-500 focus-within:bg-white focus-within:ring-4 ring-blue-500/5 transition-all relative">
+              <FiSearch className="text-slate-400 mr-3 shrink-0" size={18}/>
               <input
                 type="text"
                 name="search"
                 placeholder="Posisi, nama perusahaan, atau kata kunci (Misal: React)..."
                 value={inputs.search}
                 onChange={handleInputChange}
-                className="w-full bg-transparent outline-none text-gray-700 text-sm"
+                className="w-full bg-transparent outline-none text-slate-700 text-sm font-semibold"
               />
               {inputs.search && (
-                <button onClick={() => handleInputChange({ target: { name: 'search', value: '' }})} className="absolute right-4 text-gray-400 hover:text-gray-600"><FiX /></button>
+                <button onClick={() => handleInputChange({ target: { name: 'search', value: '' }})} className="absolute right-4 text-slate-400 hover:text-slate-600"><FiX size={16}/></button>
               )}
             </div>
-            <div className="flex-1 flex items-center px-4 py-3 bg-gray-50 rounded-2xl border border-transparent focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 ring-blue-100 transition-all relative">
-              <FiMapPin className="text-gray-400 mr-3 shrink-0" size={20}/>
+            <div className="md:w-1/3 flex items-center px-4 py-3 bg-slate-50/70 rounded-2xl border border-transparent focus-within:border-blue-500 focus-within:bg-white focus-within:ring-4 ring-blue-500/5 transition-all relative">
+              <FiMapPin className="text-slate-400 mr-3 shrink-0" size={18}/>
               <input
                 type="text"
                 name="city"
                 placeholder="Filter Kota atau Provinsi..."
                 value={inputs.city}
                 onChange={handleInputChange}
-                className="w-full bg-transparent outline-none text-gray-700 text-sm"
+                className="w-full bg-transparent outline-none text-slate-700 text-sm font-semibold"
               />
               {inputs.city && (
-                <button onClick={() => handleInputChange({ target: { name: 'city', value: '' }})} className="absolute right-4 text-gray-400 hover:text-gray-600"><FiX /></button>
+                <button onClick={() => handleInputChange({ target: { name: 'city', value: '' }})} className="absolute right-4 text-slate-400 hover:text-slate-600"><FiX size={16}/></button>
               )}
             </div>
-          </div>
+          </motion.div>
 
           {/* Quick Filters */}
-          <div className="flex items-center gap-3 mt-5 overflow-x-auto pb-2 scrollbar-hide max-w-4xl">
-            <div className="flex items-center gap-2 text-sm text-gray-500 font-medium mr-2 shrink-0"><FiFilter/> Populer:</div>
+          <div className="flex items-center gap-2.5 mt-5 overflow-x-auto pb-2 scrollbar-hide max-w-4xl">
+            <div className="flex items-center gap-1.5 text-xs text-slate-400 font-bold uppercase tracking-wider mr-2 shrink-0"><FiFilter/> Populer:</div>
             <button 
               onClick={() => handleCheckboxFilter('job_type', 'Remote')}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium shrink-0 border transition-all ${inputs.job_type === 'Remote' ? 'bg-blue-50 text-blue-600 border-blue-200 font-bold' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              className={`px-4 py-1.5 rounded-full text-xs font-bold shrink-0 border transition-all ${inputs.job_type === 'Remote' ? 'bg-blue-500/5 text-blue-600 border-blue-500/20 font-extrabold shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             >
               Remote
             </button>
             <button 
               onClick={() => handleCheckboxFilter('education_level', 'S1')}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium shrink-0 border transition-all ${inputs.education_level === 'S1' ? 'bg-blue-50 text-blue-600 border-blue-200 font-bold' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              className={`px-4 py-1.5 rounded-full text-xs font-bold shrink-0 border transition-all ${inputs.education_level === 'S1' ? 'bg-blue-500/5 text-blue-600 border-blue-500/20 font-extrabold shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             >
               Lulusan S1
             </button>
             <button 
               onClick={() => handleCheckboxFilter('education_level', 'SMA/SMK')}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium shrink-0 border transition-all ${inputs.education_level === 'SMA/SMK' ? 'bg-blue-50 text-blue-600 border-blue-200 font-bold' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+              className={`px-4 py-1.5 rounded-full text-xs font-bold shrink-0 border transition-all ${inputs.education_level === 'SMA/SMK' ? 'bg-blue-500/5 text-blue-600 border-blue-500/20 font-extrabold shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             >
               Lulusan SMA/SMK
             </button>
             {hasActiveFilters && (
-              <button onClick={handleClearFilters} className="ml-auto text-sm font-bold text-red-500 hover:text-red-700 shrink-0">
+              <button onClick={handleClearFilters} className="ml-auto text-xs font-bold text-red-500 hover:text-red-700 shrink-0 uppercase tracking-wider bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 transition-colors">
                 Reset Semua
               </button>
             )}
@@ -254,65 +367,71 @@ export default function JobList() {
       <section className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16 pt-10 flex flex-col lg:flex-row gap-10">
         
         {/* --- SIDEBAR FILTER --- */}
-        <aside className="w-full lg:w-1/4 space-y-6">
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-900 mb-4 text-sm uppercase tracking-wider">Tipe Pekerjaan</h3>
-            <div className="space-y-3">
+        <aside className="w-full lg:w-1/4 space-y-6 shrink-0">
+          <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/60 shadow-sm sticky top-24">
+            <h3 className="font-extrabold text-slate-900 mb-4 text-xs uppercase tracking-wider">Tipe Pekerjaan</h3>
+            <div className="space-y-2.5">
               {['Full-time', 'Part-time', 'Kontrak', 'Freelance', 'Remote'].map((type, i) => (
                 <label key={i} className="flex items-center gap-3 cursor-pointer group">
                   <input 
                     type="checkbox" 
                     checked={inputs.job_type === type}
                     onChange={() => handleCheckboxFilter('job_type', type)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/30 cursor-pointer"
                   />
-                  <span className={`text-sm group-hover:text-gray-900 ${inputs.job_type === type ? 'text-blue-600 font-bold' : 'text-gray-600'}`}>{type}</span>
+                  <span className={`text-sm group-hover:text-slate-950 transition-colors ${inputs.job_type === type ? 'text-blue-600 font-bold' : 'text-slate-500 font-semibold'}`}>{type}</span>
                 </label>
               ))}
             </div>
 
-            <div className="w-full h-px bg-gray-100 my-6"></div>
+            <div className="w-full h-px bg-slate-100 my-5"></div>
 
-            <h3 className="font-bold text-gray-900 mb-4 text-sm uppercase tracking-wider">Pendidikan Minimal</h3>
-            <div className="space-y-3">
+            <h3 className="font-extrabold text-slate-900 mb-4 text-xs uppercase tracking-wider">Pendidikan Minimal</h3>
+            <div className="space-y-2.5">
               {['SMA/SMK', 'D3', 'S1', 'S2'].map((edu, i) => (
                 <label key={i} className="flex items-center gap-3 cursor-pointer group">
                   <input 
                     type="checkbox" 
                     checked={inputs.education_level === edu}
                     onChange={() => handleCheckboxFilter('education_level', edu)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/30 cursor-pointer"
                   />
-                  <span className={`text-sm group-hover:text-gray-900 ${inputs.education_level === edu ? 'text-blue-600 font-bold' : 'text-gray-600'}`}>{edu}</span>
+                  <span className={`text-sm group-hover:text-slate-950 transition-colors ${inputs.education_level === edu ? 'text-blue-600 font-bold' : 'text-slate-500 font-semibold'}`}>{edu}</span>
                 </label>
               ))}
             </div>
 
-            <div className="w-full h-px bg-gray-100 my-6"></div>
+            <div className="w-full h-px bg-slate-100 my-5"></div>
 
-            <h3 className="font-bold text-gray-900 mb-4 text-sm uppercase tracking-wider">Gaji (IDR)</h3>
+            <h3 className="font-extrabold text-slate-900 mb-4 text-xs uppercase tracking-wider">Gaji (IDR)</h3>
             <div className="space-y-3">
-              <input type="number" name="minSalary" placeholder="Min. Gaji" value={inputs.minSalary} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-              <input type="number" name="maxSalary" placeholder="Max. Gaji" value={inputs.maxSalary} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs text-slate-400 font-bold">Rp</div>
+                <input type="number" name="minSalary" placeholder="Min. Gaji" value={inputs.minSalary} onChange={handleInputChange} className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-4 ring-blue-500/5 focus:border-blue-500 outline-none transition-all" />
+              </div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs text-slate-400 font-bold">Rp</div>
+                <input type="number" name="maxSalary" placeholder="Max. Gaji" value={inputs.maxSalary} onChange={handleInputChange} className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-4 ring-blue-500/5 focus:border-blue-500 outline-none transition-all" />
+              </div>
             </div>
           </div>
 
           {!isLoggedIn ? (
-            <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-3xl p-6 text-center text-white shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+            <div className="bg-gradient-to-br from-slate-950 to-indigo-950 rounded-3xl p-6 text-center text-white shadow-xl relative overflow-hidden border border-slate-800">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
               <div className="relative z-10">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm text-yellow-300 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/20"><BsStars size={24}/></div>
-                <h4 className="font-bold text-lg mb-2">Aktifkan AI Matcher</h4>
-                <p className="text-xs text-blue-100 mb-6 leading-relaxed">Login sekarang untuk melihat persentase kecocokan CV kamu dengan setiap lowongan secara otomatis.</p>
-                <button onClick={() => navigate('/login')} className="w-full bg-white text-blue-700 font-bold py-3 rounded-xl hover:bg-blue-50 transition-colors text-sm shadow-md cursor-pointer">Login / Daftar Gratis</button>
+                <div className="w-11 h-11 bg-white/5 text-amber-300 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/10"><BsStars size={20} className="animate-pulse" /></div>
+                <h4 className="font-bold text-base mb-2">Aktifkan AI Matcher</h4>
+                <p className="text-xs text-slate-400 mb-6 leading-relaxed font-medium">Masuk ke akun sekarang untuk melihat persentase kecocokan CV Anda secara langsung di setiap kartu lowongan.</p>
+                <button onClick={() => navigate('/login')} className="w-full bg-white text-slate-950 font-bold py-3 rounded-2xl hover:bg-slate-50 transition-colors text-xs cursor-pointer">Login / Daftar Gratis</button>
               </div>
             </div>
           ) : (
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 p-6 rounded-3xl text-center">
-               <div className="w-12 h-12 bg-white text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm"><BsStars size={20}/></div>
-               <h4 className="font-bold text-gray-900 mb-2">Tingkatkan Skor Anda</h4>
-               <p className="text-xs text-gray-500 mb-4">Perbarui CV Anda di Editor untuk meningkatkan persentase kecocokan.</p>
-               <button onClick={() => navigate('/editor')} className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-xl hover:bg-blue-700 transition-colors text-sm">Buka CV Editor</button>
+            <div className="bg-gradient-to-br from-blue-500/5 to-indigo-500/5 border border-blue-500/10 p-6 rounded-3xl text-center">
+               <div className="w-11 h-11 bg-white text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-md border border-slate-100"><BsStars size={18}/></div>
+               <h4 className="font-bold text-slate-900 mb-2">Tingkatkan Skor Anda</h4>
+               <p className="text-xs text-slate-500 mb-5 leading-relaxed font-medium">Lakukan pengeditan dan optimasi teks resume Anda di Editor untuk peluang lolos yang lebih tinggi.</p>
+               <button onClick={() => navigate('/editor')} className="w-full bg-slate-900 text-white font-bold py-2.5 rounded-2xl hover:bg-slate-800 transition-colors text-xs shadow-md cursor-pointer">Buka CV Editor</button>
             </div>
           )}
         </aside>
@@ -320,13 +439,13 @@ export default function JobList() {
         {/* --- DAFTAR LISTING LOWONGAN --- */}
         <div className="w-full lg:w-3/4">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="font-bold text-gray-900 text-lg">
+            <h2 className="font-extrabold text-slate-900 text-base">
                {loading ? 'Mencari...' : `${totalJobs || jobs?.length || 0} Lowongan Ditemukan`}
             </h2>
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-gray-500">Urutkan:</span>
+            <div className="flex items-center gap-2 text-xs font-bold bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+              <span className="text-slate-400">Urutkan:</span>
               <select 
-                className="font-semibold text-gray-900 bg-transparent outline-none cursor-pointer"
+                className="font-extrabold text-slate-700 bg-transparent outline-none cursor-pointer"
                 value={inputs.sort}
                 onChange={(e) => handleInputChange({ target: { name: 'sort', value: e.target.value }})}
               >
@@ -338,102 +457,107 @@ export default function JobList() {
 
           <div className="space-y-4">
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-32 bg-white rounded-3xl border border-gray-100">
-                <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-4"></div>
-                <p className="text-sm font-semibold text-gray-500">Menyinkronkan data lowongan...</p>
+              <div className="flex flex-col items-center justify-center py-32 bg-white rounded-3xl border border-slate-200/60 shadow-sm">
+                <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Memuat lowongan...</p>
               </div>
             ) : error ? (
-              <div className="text-center py-20 bg-red-50 rounded-3xl border border-red-100 flex flex-col items-center">
-                <div className="w-16 h-16 bg-white text-red-500 rounded-full flex items-center justify-center mb-4 shadow-sm"><FiXCircle size={32} /></div>
-                <h3 className="font-bold text-red-800 mb-1">Terjadi Kesalahan</h3>
-                <p className="text-sm text-red-600">{error}</p>
+              <div className="text-center py-20 bg-rose-50 rounded-3xl border border-rose-100 flex flex-col items-center p-6">
+                <div className="w-14 h-14 bg-white text-rose-500 rounded-full flex items-center justify-center mb-4 shadow-sm border border-rose-100"><FiXCircle size={24} /></div>
+                <h3 className="font-extrabold text-rose-800 mb-1">Gagal Sinkronisasi</h3>
+                <p className="text-sm text-rose-600 font-medium max-w-sm">{error}</p>
               </div>
             ) : jobs.length === 0 ? (
-              <div className="text-center py-24 bg-white rounded-3xl border border-gray-100 flex flex-col items-center">
-                <div className="w-20 h-20 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center mb-5"><FiSearch size={32}/></div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Pencarian Tidak Ditemukan</h3>
-                <p className="text-sm text-gray-500 max-w-sm">Maaf, tidak ada lowongan yang sesuai dengan filter Anda. Coba kurangi filter atau gunakan kata kunci lain.</p>
-                <button onClick={handleClearFilters} className="mt-6 font-bold text-blue-600 bg-blue-50 px-6 py-2.5 rounded-xl hover:bg-blue-100 transition-colors">Reset Filter</button>
+              <div className="text-center py-24 bg-white rounded-3xl border border-slate-200/60 shadow-sm flex flex-col items-center p-6">
+                <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mb-5 border border-slate-100"><FiSearch size={24}/></div>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">Pencarian Tidak Ditemukan</h3>
+                <p className="text-sm text-slate-500 max-w-sm font-medium leading-relaxed">Maaf, tidak ada lowongan yang sesuai dengan kriteria filter Anda saat ini. Coba kurangi filter atau gunakan kata kunci lain.</p>
+                <button onClick={handleClearFilters} className="mt-6 font-bold text-blue-600 bg-blue-50 px-5 py-2.5 rounded-xl hover:bg-blue-100 transition-colors text-xs">Reset Filter</button>
               </div>
             ) : (
-              <>
+              <motion.div 
+                initial="hidden"
+                animate="visible"
+                variants={staggerContainer}
+                className="space-y-4"
+              >
                 {jobs.map((job) => (
-                  <div
+                  <motion.div
                     key={job?.id}
-                    className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:shadow-blue-900/5 hover:border-blue-200 transition-all group flex flex-col cursor-pointer"
+                    variants={fadeInUp}
+                    whileHover={{ y: -3 }}
+                    className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/30 hover:border-blue-200/80 transition-all group flex flex-col cursor-pointer"
                     onClick={() => navigate(`/detail/${job?.id}`)}
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex gap-4">
-                        <div className="w-14 h-14 bg-blue-50 border border-blue-100 text-blue-600 rounded-2xl flex items-center justify-center font-black text-2xl shadow-sm shrink-0">
+                        <div className="w-12 h-12 bg-gradient-to-tr from-slate-50 to-slate-100 border border-slate-200 text-slate-700 rounded-2xl flex items-center justify-center font-black text-xl shadow-inner shrink-0 group-hover:from-blue-50 group-hover:to-indigo-50 group-hover:text-blue-600 group-hover:border-blue-100 transition-colors">
                           {job?.title?.substring(0, 1).toUpperCase() || 'J'}
                         </div>
                         <div>
-                          <h3 className="font-bold text-xl text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1 mb-1">
+                          <h3 className="font-bold text-lg text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1 mb-1">
                             {job?.title}
                           </h3>
-                          <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
-                            <span className="font-semibold text-gray-700 flex items-center gap-1.5">
-                              <FiBriefcase className="text-gray-400" /> {job?.company_name}
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-400 font-semibold">
+                            <span className="text-slate-700 flex items-center gap-1.5 font-bold">
+                              <FiBriefcase className="text-slate-400" /> {job?.company_name}
                             </span>
-                            <span className="w-1.5 h-1.5 bg-gray-300 rounded-full hidden sm:block"></span>
-                            {/* ✅ Hanya city — province tidak ada di list response */}
-                            <span className="flex items-center gap-1.5">
-                              <FiMapPin className="text-gray-400" /> {job?.city || 'Indonesia'}
+                            <span className="w-1 h-1 bg-slate-300 rounded-full hidden sm:block"></span>
+                            <span className="flex items-center gap-1.5 font-medium">
+                              <FiMapPin className="text-slate-400" /> {job?.city || 'Indonesia'}
                             </span>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 mb-5">
-                      {/* ✅ Salary dari salary_min / salary_max */}
-                      <span className="bg-green-50 text-green-700 text-xs font-bold px-3 py-1.5 rounded-lg border border-green-100 flex items-center gap-1.5">
-                        <FiDollarSign size={14} className="-mr-0.5" />
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <span className="bg-emerald-500/5 text-emerald-700 text-[11px] font-bold px-3 py-1.5 rounded-xl border border-emerald-500/10 flex items-center gap-1.5 shadow-sm">
+                        <FiDollarSign size={13} className="text-emerald-500 shrink-0" />
                         {formatSalary(job?.salary_min, job?.salary_max)}
                       </span>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pt-5 border-t border-gray-50 gap-4 mt-auto">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pt-4 border-t border-slate-100 gap-4 mt-auto">
                       <div className="flex items-center gap-3 text-xs">
                         {isLoggedIn ? (
-                          <span className="font-bold flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-50 text-green-600 border border-green-100">
-                            <FiCheckCircle /> Terhubung dengan CV Anda
+                          <span className="font-bold flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/5 text-emerald-600 border border-emerald-500/10">
+                            <FiCheckCircle className="text-emerald-500" /> Terhubung dengan CV
                           </span>
                         ) : (
-                          <span className="text-purple-600 bg-purple-50 px-2.5 py-1 rounded-md border border-purple-100 font-bold flex items-center gap-1.5">
-                            <BsStars /> Tersedia AI Match
+                          <span className="text-purple-600 bg-purple-500/5 px-2.5 py-1 rounded-lg border border-purple-500/10 font-bold flex items-center gap-1.5">
+                            <BsStars className="text-purple-500" /> AI Matcher Tersedia
                           </span>
                         )}
                       </div>
-                      <span className="text-blue-600 text-sm font-bold flex items-center gap-1 group-hover:mr-1 transition-all">
-                        Lihat Detail <FiArrowRight />
+                      <span className="text-blue-600 text-xs font-bold flex items-center gap-1 group-hover:gap-2 transition-all">
+                        Lihat Rincian <FiArrowRight />
                       </span>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
 
                 {/* Kontrol Paginasi */}
                 {totalPages > 1 && (
-                  <div className="flex justify-center items-center gap-2 mt-10 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                  <div className="flex justify-center items-center gap-2 mt-10 p-4 bg-white/70 backdrop-blur-md rounded-2xl border border-slate-200/60 shadow-sm">
                     <button 
                       disabled={currentPage === 1} 
                       onClick={() => { setCurrentPage(prev => Math.max(1, prev - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
-                      className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-bold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     >
                       Sebelumnya
                     </button>
-                    <span className="px-4 py-2 text-gray-600 text-sm font-medium">Halaman <strong className="text-gray-900">{currentPage}</strong> dari {totalPages}</span>
+                    <span className="px-3 py-1 text-slate-500 text-xs font-bold">Halaman <strong className="text-slate-900">{currentPage}</strong> dari {totalPages}</span>
                     <button 
                       disabled={currentPage === totalPages} 
                       onClick={() => { setCurrentPage(prev => Math.min(totalPages, prev + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 
-                      className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-sm font-bold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     >
                       Selanjutnya
                     </button>
                   </div>
                 )}
-              </>
+              </motion.div>
             )}
           </div>
         </div>
