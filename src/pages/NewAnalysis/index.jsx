@@ -1,11 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiUploadCloud, FiEdit2, FiRefreshCw, FiZap,
-  FiCheckCircle, FiShield, FiFileText, FiTarget, FiBriefcase
+  FiCheckCircle, FiShield, FiFileText, FiTarget, FiBriefcase, FiX
 } from 'react-icons/fi';
 import { BsStars, BsLightbulbFill } from 'react-icons/bs';
-import { analyzeCV, checkCVStatus, fetchAnalysisHistory } from '../../services/api';
+import { uploadCV, fetchAnalysisHistory } from '../../services/api'; // Menggunakan uploadCV instan
+
+// Konfigurasi animasi seragam
+// eslint-disable-next-line no-unused-vars
+const fadeInUp = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.65, ease: [0.16, 1, 0.3, 1] } }
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+};
 
 export default function NewAnalysis() {
   const navigate = useNavigate();
@@ -14,13 +33,12 @@ export default function NewAnalysis() {
   const [activeTab, setActiveTab] = useState('upload');
   const [file, setFile] = useState(null);
   
-  // State baru untuk input manual
+  // State untuk input manual
   const [pengalaman, setPengalaman] = useState('');
   const [keahlian, setKeahlian] = useState('');
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState('');
-  const [taskId, setTaskId] = useState(null);
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
 
@@ -59,39 +77,7 @@ export default function NewAnalysis() {
     }
   };
 
-  // Poll for analysis status
-  useEffect(() => {
-    if (!taskId || !token) return;
-
-    let intervalId;
-
-    const poll = async () => {
-      try {
-        const result = await checkCVStatus(token, taskId);
-
-        if (result.status === 'completed') {
-          clearInterval(intervalId);
-          setIsAnalyzing(false);
-          setTaskId(null);
-          
-          const analysisId = result.data?.id || result.data?.analysis_id || result.analysis_id;
-          navigate('/analisis-result', { state: { analysisId: analysisId } });
-        } else if (result.status === 'failed') {
-          clearInterval(intervalId);
-          setIsAnalyzing(false);
-          setError('Analisis gagal. Silakan coba lagi.');
-          setTaskId(null);
-        }
-      } catch (err) {
-        console.error('Polling error:', err);
-      }
-    };
-
-    intervalId = setInterval(poll, 3000);
-    return () => clearInterval(intervalId);
-  }, [taskId, token, navigate]);
-
-  // Start analysis
+  // Memulai analisis menggunakan alur sinkron langsung (uploadCV) seperti di PreLoginFlow
   const handleStartAnalysis = async () => {
     // Validasi berdasarkan Tab Aktif
     if (activeTab === 'upload' && !file) {
@@ -113,20 +99,32 @@ export default function NewAnalysis() {
     setError('');
 
     try {
-      let result;
+      let apiResult = null;
+
       if (activeTab === 'upload') {
-        // Panggil analyzeCV dengan file (Manual dikosongkan)
-        result = await analyzeCV(token, file, null);
+        // Memakai endpoint uploadCV instan langsung
+        apiResult = await uploadCV(file, null);
       } else {
         // Gabungkan teks manual
         const manualData = `Pengalaman Kerja:\n${pengalaman}\n\nDaftar Keahlian:\n${keahlian}`;
-        // Panggil analyzeCV dengan manualData (File dikosongkan)
-        result = await analyzeCV(token, null, manualData);
+        apiResult = await uploadCV(null, manualData);
       }
+
+      if (!apiResult || !apiResult.preview) {
+        throw new Error("Respons analisis kosong atau tidak valid dari server.");
+      }
+
+      // Simpan hasil pindaian sementara ke sessionStorage
+      sessionStorage.setItem('guest_cv_result', JSON.stringify({
+        ...apiResult.preview,
+        temp_token: apiResult.temp_token
+      }));
       
-      setTaskId(result.task_id);
+      // Lanjut ke hasil analisis (Halaman hasil akan otomatis mengklaim temp_token ke akun user Anda)
+      navigate('/analisis-result'); 
+
     } catch (err) {
-      setError(err.message || 'Gagal memulai analisis. Silakan coba lagi.');
+      setError(err.message || 'Gagal memproses analisis profil Anda. Silakan coba lagi.');
       setIsAnalyzing(false);
       console.error('Analysis error:', err);
     }
@@ -138,16 +136,16 @@ export default function NewAnalysis() {
     : (pengalaman.trim().length >= 5 && keahlian.trim().length >= 5);
 
   return (
-    <div className="max-w-7xl mx-auto pb-12 font-sans text-gray-800">
+    <div className="max-w-7xl mx-auto pb-12 selection:bg-blue-500/10 selection:text-blue-600 animate-fadeIn">
       
-      {/* --- HEADER --- */}
-      <div className="flex items-center gap-4 mb-8">
-        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
-          <BsStars size={24} />
+      {/* --- PAGE HEADER --- */}
+      <div className="flex items-center gap-4 mb-8 text-left">
+        <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-slate-950/15 border border-slate-800">
+          <BsStars size={22} className="text-amber-400 animate-pulse" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">Analisis Baru</h1>
-          <p className="text-sm text-gray-500">Upload CV baru untuk analisis ulang secara instan</p>
+          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight mb-1">Analisis Baru</h1>
+          <p className="text-sm text-slate-500 font-medium">Unggah CV baru Anda untuk mengevaluasi kelayakan karir secara menyeluruh.</p>
         </div>
       </div>
 
@@ -155,174 +153,217 @@ export default function NewAnalysis() {
         
         {/* KOLOM KIRI (Area Input Utama) */}
         <div className="lg:w-2/3">
-          <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm">
+          <motion.div 
+            initial="hidden"
+            animate="visible"
+            variants={staggerContainer}
+            className="bg-white/70 backdrop-blur-md rounded-3xl p-6 md:p-8 border border-slate-200/60 shadow-lg shadow-slate-200/30"
+          >
             
-            <div className="flex items-center justify-between mb-8 relative">
-              <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-100 -z-10 -translate-y-1/2"></div>
-              <div className="flex items-center gap-2 bg-white pr-4">
-                <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm">1</div>
-                <span className="text-sm font-bold text-gray-900">Data CV</span>
+            {/* Progress Tracker (Premium Design) */}
+            <div className="flex items-center justify-between mb-8 relative hidden sm:flex px-2 select-none">
+              <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 -z-10 -translate-y-1/2"></div>
+              <div className="flex items-center gap-2.5 bg-white pr-5 relative z-10">
+                <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-md border border-slate-800">1</div>
+                <span className="text-xs font-bold text-slate-900 uppercase tracking-wide">Data CV</span>
               </div>
-              <div className="flex items-center gap-2 bg-white px-4">
-                <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm">2</div>
-                <span className="text-sm font-medium text-gray-400">Analisis AI</span>
+              <div className="flex items-center gap-2.5 bg-white px-5 relative z-10">
+                <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center font-bold text-xs border border-slate-200">2</div>
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Analisis AI</span>
               </div>
-              <div className="flex items-center gap-2 bg-white pl-4">
-                <div className="w-8 h-8 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-bold text-sm">3</div>
-                <span className="text-sm font-medium text-gray-400">Hasil Penuh</span>
+              <div className="flex items-center gap-2.5 bg-white pl-5 relative z-10">
+                <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center font-bold text-xs border border-slate-200">3</div>
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Hasil Penuh</span>
               </div>
             </div>
 
-            {/* Toggle Tabs */}
-            <div className="flex bg-gray-50 p-1.5 rounded-xl border border-gray-200 mb-8">
+            {/* Toggle Tabs (Vercel Style) */}
+            <div className="flex bg-slate-50 p-1 rounded-2xl border border-slate-200 shadow-inner mb-8">
               <button 
                 onClick={() => { setActiveTab('upload'); setError(''); }} 
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold transition-all ${activeTab === 'upload' ? 'bg-white text-indigo-600 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'upload' ? 'bg-white text-slate-900 shadow-md border border-slate-200/80 font-extrabold' : 'text-slate-500 hover:text-slate-800 hover:bg-white/40'}`}
               >
-                <FiUploadCloud size={18}/> Unggah File
+                <FiUploadCloud size={16}/> Unggah File
               </button>
               <button 
                 onClick={() => { setActiveTab('manual'); setError(''); }} 
-                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold transition-all ${activeTab === 'manual' ? 'bg-white text-indigo-600 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'manual' ? 'bg-white text-slate-900 shadow-md border border-slate-200/80 font-extrabold' : 'text-slate-500 hover:text-slate-800 hover:bg-white/40'}`}
               >
-                <FiEdit2 size={18}/> Isi Manual
+                <FiEdit2 size={16}/> Isi Manual
               </button>
             </div>
 
             {/* Konten Tab */}
             <div className="mb-8">
-              {activeTab === 'upload' ? (
-                <div>
-                  <label className="border-2 border-dashed border-gray-300 rounded-2xl p-12 flex flex-col items-center justify-center text-center hover:bg-indigo-50/50 hover:border-indigo-300 transition-colors cursor-pointer group block">
-                    <input
-                      type="file"
-                      onChange={handleFileChange}
-                      accept=".pdf,.docx"
-                      className="hidden"
-                    />
-                    {file ? (
-                      <div className="flex items-center gap-3">
-                        <FiFileText className="text-indigo-600" size={32} />
-                        <div className="text-left">
-                          <p className="text-sm font-bold text-gray-900">{file.name}</p>
-                          <p className="text-xs text-green-600 flex items-center gap-1"><FiCheckCircle /> Siap dianalisis</p>
+              <AnimatePresence mode="wait">
+                {activeTab === 'upload' ? (
+                  <motion.div
+                    key="upload-tab"
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <label className="border-2 border-dashed border-slate-300 rounded-3xl p-12 flex flex-col items-center justify-center text-center hover:bg-slate-50/50 hover:border-slate-400 transition-colors cursor-pointer group block">
+                      <input
+                        type="file"
+                        onChange={handleFileChange}
+                        accept=".pdf,.docx"
+                        className="hidden"
+                      />
+                      {file ? (
+                        <div 
+                          className="flex items-center gap-4 bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm w-full max-w-sm cursor-default animate-fadeIn" 
+                          onClick={(e) => e.preventDefault()}
+                        >
+                          <div className="bg-blue-50 p-3 rounded-xl text-blue-600 border border-blue-100"><FiFileText size={22} /></div>
+                          <div className="text-left flex-1 truncate">
+                            <p className="font-bold text-sm text-slate-900 truncate">{file.name}</p>
+                            <p className="text-[10px] text-emerald-600 font-extrabold flex items-center gap-1 mt-1 uppercase tracking-wider"><FiCheckCircle /> Siap dianalisis</p>
+                          </div>
+                          {/* Tombol silang untuk menghapus file secara dinamis */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              setFile(null);
+                            }}
+                            className="text-slate-400 hover:text-rose-600 p-1.5 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer shrink-0"
+                          >
+                            <FiX size={18} />
+                          </button>
                         </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                          <FiUploadCloud size={32} />
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">Drag & Drop CV baru di sini</h3>
-                        <p className="text-sm text-gray-500 mb-6">atau klik untuk memilih file</p>
-                        <div className="flex gap-3 text-xs font-semibold text-gray-400">
-                          <span className="bg-gray-100 px-3 py-1 rounded-md">PDF</span>
-                          <span className="bg-gray-100 px-3 py-1 rounded-md">DOCX</span>
-                          <span className="bg-gray-100 px-3 py-1 rounded-md">Maks 1MB</span>
-                        </div>
-                      </>
-                    )}
-                  </label>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-900 mb-2">Pengalaman Kerja</label>
-                    <textarea
-                      rows="5"
-                      value={pengalaman}
-                      onChange={(e) => setPengalaman(e.target.value)}
-                      placeholder="Contoh: 3 tahun sebagai Frontend Developer di PT ABC..."
-                      className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-gray-50 focus:bg-white transition-colors"
-                    ></textarea>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-900 mb-2">Daftar Keahlian</label>
-                    <textarea
-                      rows="3"
-                      value={keahlian}
-                      onChange={(e) => setKeahlian(e.target.value)}
-                      placeholder="Contoh: React, TypeScript, Node.js, Figma..."
-                      className="w-full p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-gray-50 focus:bg-white transition-colors"
-                    ></textarea>
-                  </div>
-                </div>
-              )}
+                      ) : (
+                        <>
+                          <div className="w-14 h-14 bg-slate-50 text-slate-500 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-105 group-hover:text-slate-800 group-hover:border-slate-300 transition-all border border-slate-200">
+                            <FiUploadCloud size={24} />
+                          </div>
+                          <h3 className="text-base font-bold text-slate-900 mb-1 tracking-tight">Drag & Drop CV baru Anda di sini</h3>
+                          <p className="text-xs text-slate-500 mb-6 font-semibold">atau klik untuk memilih file</p>
+                          <div className="flex gap-2.5 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
+                            <span className="bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">PDF</span>
+                            <span className="bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">DOCX</span>
+                            <span className="bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">Maks 1MB</span>
+                          </div>
+                        </>
+                      )}
+                    </label>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="manual-tab"
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-5 text-left"
+                  >
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5">Pengalaman Kerja</label>
+                      <textarea
+                        rows="5"
+                        value={pengalaman}
+                        onChange={(e) => setPengalaman(e.target.value)}
+                        placeholder="Contoh: 3 tahun sebagai Frontend Developer di PT ABC..."
+                        className="w-full p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none text-sm bg-slate-50/50 focus:bg-white transition-all resize-none font-semibold text-slate-700"
+                      ></textarea>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5">Daftar Keahlian</label>
+                      <textarea
+                        rows="3"
+                        value={keahlian}
+                        onChange={(e) => setKeahlian(e.target.value)}
+                        placeholder="Contoh: React, TypeScript, Node.js, Figma..."
+                        className="w-full p-4 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none text-sm bg-slate-50/50 focus:bg-white transition-all resize-none font-semibold text-slate-700"
+                      ></textarea>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {error && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
-                {error}
+              <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl text-xs font-bold text-rose-600 flex items-center gap-2">
+                <FiTarget className="shrink-0 text-rose-500" size={16}/> {error}
               </div>
             )}
 
             <button
               onClick={handleStartAnalysis}
               disabled={isAnalyzing || !isFormValid}
-              className={`w-full font-bold py-4 rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 ${isAnalyzing || !isFormValid ? 'bg-indigo-300 text-white cursor-not-allowed shadow-none' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200'}`}
+              className={`w-full font-bold py-4 rounded-2xl shadow-md transition-all flex justify-center items-center gap-2 cursor-pointer text-sm ${isAnalyzing || !isFormValid ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-slate-900/10'}`}
             >
               {isAnalyzing ? (
-                <><FiRefreshCw className="animate-spin" size={20} /> Memproses Analisis AI...{taskId && ` (ID: ${taskId})`}</>
+                <><FiRefreshCw className="animate-spin" size={18} /> Memproses Analisis AI...</>
               ) : (
-                <><FiZap size={20} /> Mulai Analisis Penuh</>
+                <><FiZap size={18} /> Mulai Analisis Penuh</>
               )}
             </button>
-            <p className="text-center text-xs text-gray-400 mt-4">
-              Hasil analisis akan menampilkan seluruh skor dan saran secara lengkap.
+            <p className="text-center text-[10px] font-bold text-slate-400 mt-4 uppercase tracking-wide">
+              Hasil analisis akan menyajikan evaluasi skor, gap keahlian, dan narasi perbaikan secara terperinci.
             </p>
 
-          </div>
+          </motion.div>
         </div>
 
-        {/* KOLOM KANAN (Widget Tambahan) */}
-        <div className="lg:w-1/3 space-y-6">
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-900 mb-1">Scan Terakhir</h3>
-            <p className="text-xs text-gray-500 mb-5">Klik untuk lihat hasil analisis</p>
+        {/* KOLOM KANAN (Riwayat & Widget Tambahan) */}
+        <div className="lg:w-1/3 space-y-6 text-left shrink-0">
+          
+          {/* DAFTAR RIWAYAT PINDAIAN USER */}
+          <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/60 shadow-sm">
+            <h3 className="font-extrabold text-slate-900 mb-1 text-sm uppercase tracking-wider flex items-center gap-2"><FiTarget size={16} className="text-indigo-500"/> Riwayat Analisis</h3>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-5">Klik untuk melihat rincian laporan</p>
 
             <div className="space-y-4">
               {loadingHistory ? (
-                <p className="text-sm text-gray-500">Memuat riwayat...</p>
+                <div className="animate-pulse flex flex-col gap-3.5">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="h-14 bg-slate-50 border border-slate-100 rounded-2xl"></div>
+                  ))}
+                </div>
               ) : history && history.length > 0 ? (
                 history.slice(0, 3).map((scan, idx) => (
                   <div
                     key={idx}
                     onClick={() => navigate(`/analisis-result`, { state: { analysisId: scan.id } })}
-                    className="flex items-center justify-between group cursor-pointer"
+                    className="flex items-center justify-between group cursor-pointer p-3 rounded-2xl border border-slate-100 bg-white hover:border-indigo-200 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-green-50 text-green-500 flex items-center justify-center border border-green-100">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/5 text-emerald-600 flex items-center justify-center border border-emerald-500/10 shrink-0">
                         <FiTarget size={18}/>
                       </div>
-                      <div>
-                        <p className="text-sm font-bold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-1">{scan.job_title || 'Analisis CV'}</p>
-                        <p className="text-xs text-gray-500">{new Date(scan.created_at).toLocaleDateString('id-ID')} · Skor: {Math.round(scan.score || scan.match_score || 0)}</p>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1 truncate capitalize">{scan.job_title || 'Analisis CV'}</p>
+                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{new Date(scan.created_at).toLocaleDateString('id-ID')} · Skor: {Math.round(scan.score || scan.match_score || 0)}</p>
                       </div>
                     </div>
-                    <FiRefreshCw className="text-gray-300 group-hover:text-indigo-600 transition-colors shrink-0" />
+                    <FiRefreshCw className="text-slate-300 group-hover:text-indigo-600 transition-colors shrink-0" size={15} />
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-gray-500">Belum ada analisis sebelumnya</p>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider py-4 text-center">Belum ada analisis sebelumnya</p>
               )}
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 rounded-3xl text-white shadow-md relative overflow-hidden">
-             <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-             <h3 className="font-bold mb-4 relative z-10">Real-time Scan</h3>
-             <ul className="space-y-3 text-sm text-indigo-50 relative z-10">
-               <li className="flex items-center gap-2"><FiZap className="text-indigo-200 shrink-0"/> Skor kecocokan instan (0-100)</li>
-               <li className="flex items-center gap-2"><FiCheckCircle className="text-indigo-200 shrink-0"/> Skill Match & Gap analysis</li>
-               <li className="flex items-center gap-2"><BsStars className="text-indigo-200 shrink-0"/> Saran perbaikan kalimat AI</li>
-               <li className="flex items-center gap-2"><FiBriefcase className="text-indigo-200 shrink-0"/> Rekomendasi lowongan baru</li>
+          {/* REAL-TIME SCAN METRICS */}
+          <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 p-6 rounded-3xl border border-slate-800 shadow-xl text-white relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+             <h3 className="font-bold text-sm mb-4 flex items-center gap-2 uppercase tracking-wider relative z-10"><BsStars className="text-amber-300"/> Real-time Scan AI</h3>
+             <ul className="space-y-3 text-xs text-slate-400 relative z-10 font-semibold">
+               <li className="flex items-center gap-3"><div className="bg-white/5 p-2 rounded-xl text-blue-400 border border-white/5"><FiZap size={14}/></div> Skor kecocokan instan (0-100)</li>
+               <li className="flex items-center gap-3"><div className="bg-white/5 p-2 rounded-xl text-emerald-400 border border-white/5"><FiCheckCircle size={14}/></div> Analisis Skill Match & Gap</li>
+               <li className="flex items-center gap-3"><div className="bg-white/5 p-2 rounded-xl text-purple-400 border border-white/5"><FiFileText size={14}/></div> Saran perbaikan kalimat AI</li>
+               <li className="flex items-center gap-3"><div className="bg-white/5 p-2 rounded-xl text-amber-400 border border-white/5"><FiBriefcase size={14}/></div> Rekomendasi lowongan baru</li>
              </ul>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><BsLightbulbFill className="text-yellow-500"/> Tips</h3>
-            <ul className="space-y-3 text-sm text-gray-600">
-              <li className="flex items-start gap-2"><FiCheckCircle className="text-green-500 shrink-0 mt-0.5"/> <span>Pastikan CV Anda menggunakan format yang bersih (ATS-Friendly) agar mudah dibaca AI.</span></li>
+          <div className="bg-white/85 backdrop-blur-md p-6 rounded-3xl border border-slate-200/60 shadow-sm">
+            <h3 className="font-bold text-slate-950 text-sm mb-4 flex items-center gap-2"><BsLightbulbFill className="text-amber-400 shrink-0"/> Tips Kelulusan ATS</h3>
+            <ul className="space-y-3 text-xs text-slate-500 font-medium">
+              <li className="flex items-start gap-2"><FiCheckCircle className="text-emerald-500 shrink-0 mt-0.5"/> <span>Pastikan struktur berkas yang diunggah bebas dari tabel rumit agar parser parser teks internal AI kami bekerja optimal.</span></li>
             </ul>
           </div>
         </div>

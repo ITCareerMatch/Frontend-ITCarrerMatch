@@ -17,7 +17,6 @@ const NewAnalysis = lazy(() => import('../pages/NewAnalysis'));
 const AnalysisResult = lazy(() => import('../pages/AnalysisResult'));
 const DashboardJobs = lazy(() => import('../pages/DashboardJobs'));
 const Settings = lazy(() => import('../pages/Settings'));
-const AboutUs = lazy(() => import('../pages/About'));
 
 // 2. Komponen Loading
 const PageLoader = () => (
@@ -49,16 +48,20 @@ const RootLayout = () => {
   );
 };
 
-// 4. Konfigurasi Router (dengan RootLayout)
+// 4. Konfigurasi Router (Dengan Rute Ganda JobDetail yang Stabil)
 const router = createBrowserRouter([
   {
-    element: <RootLayout />, // AuthProvider sekarang ada di level tertinggi sistem router
+    element: <RootLayout />,
     children: [
       { path: '/', element: <LandingPage /> },
-      { path: '/tentang-kami', element: <About/> },
+      { path: '/tentang-kami', element: <About /> },
       { path: '/lowongan', element: <JobList /> },
       { path: '/cek-skor', element: <PreLoginFlow /> },
       { path: '/analisis-result', element: <AnalysisResult /> },
+      
+      // 1. RUTE STANDALONE PUBLIK (Diakses dari JobList Tamu)
+      { path: '/detail/:id', element: <JobDetail /> }, 
+
       { path: '/login', element: <PublicRoute><Login /></PublicRoute> },
       { path: '/register', element: <PublicRoute><Register /></PublicRoute> },
       {
@@ -67,7 +70,10 @@ const router = createBrowserRouter([
           { path: 'dashboard', element: <ProtectedRoute><Dashboard /></ProtectedRoute> },
           { path: 'analisis-baru', element: <ProtectedRoute><NewAnalysis /></ProtectedRoute> },
           { path: 'daftar-lowongan', element: <ProtectedRoute><DashboardJobs /></ProtectedRoute> },
-          { path: 'detail/:id', element: <ProtectedRoute><JobDetail /></ProtectedRoute> },
+          
+          // 2. RUTE DASBOR INTERNAL (Diakses dari Halaman Dasbor Pengguna)
+          { path: 'dashboard/detail/:id', element: <ProtectedRoute><JobDetail /></ProtectedRoute> }, 
+          
           { path: 'editor', element: <ProtectedRoute><CvEditor /></ProtectedRoute> },
           { path: 'pengaturan', element: <ProtectedRoute><Settings /></ProtectedRoute> },
         ],

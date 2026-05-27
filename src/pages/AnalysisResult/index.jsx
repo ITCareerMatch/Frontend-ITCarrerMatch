@@ -419,7 +419,7 @@ export default function AnalysisResult() {
                       
                       {isLoggedIn ? (
                         <button 
-                          onClick={() => navigate(`/detail/${job.id}`)} 
+                          onClick={() => navigate(`/dashboard/detail/${job.id}`)} 
                           className="text-blue-600 text-xs font-bold hover:text-blue-800 transition-colors flex items-center gap-1 cursor-pointer uppercase tracking-wider"
                         >
                           Lamar Sekarang &rarr;

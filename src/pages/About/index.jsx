@@ -168,7 +168,7 @@ export default function About() {
                   ) : (
                   <button onClick={() => { setMobileMenuOpen(false); navigate('/login'); }} className="w-full text-center text-slate-700 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors border border-slate-200 font-bold">Masuk</button>
                   )}
-                  <button onClick={() => { setMobileMenuOpen(false); navigate('/analisis-baru'); }} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-xl hover:bg-blue-700 transition-all flex justify-center items-center gap-2 font-bold"><BsStars /> Cek Skor CV</button>
+                  <button onClick={() => { setMobileMenuOpen(false); navigate('/cek-skor'); }} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-xl hover:bg-blue-700 transition-all flex justify-center items-center gap-2 font-bold"><BsStars /> Cek Skor CV</button>
               </div>
             </div>
           </motion.div>

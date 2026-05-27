@@ -30,7 +30,7 @@ export default function DashLayout() {
     if (location.pathname.includes('/editor')) return 'CV Editor';
     if (location.pathname.includes('/analisis-baru')) return 'Analisis Baru';
     if (location.pathname.includes('/daftar-lowongan')) return 'Daftar Lowongan';
-    if (location.pathname.includes('/detail')) return 'Detail Lowongan';
+    if (location.pathname.includes('/dashboard/detail:id')) return 'Detail Lowongan';
     if (location.pathname.includes('/pengaturan')) return 'Pengaturan';
     return 'Dashboard';
   };
@@ -70,7 +70,7 @@ export default function DashLayout() {
   const handleLogout = async () => {
     localStorage.removeItem('access_token');
     await supabase.auth.signOut();
-    navigate('/');
+    navigate('/login');
   };
 
   const navItems = [
@@ -99,7 +99,7 @@ export default function DashLayout() {
             onClick={() => navigate('/')}
           >
             <div className="relative">
-              <div className="absolute -inset-1 rounded-2xl opacity-20 blur-md group-hover:opacity-45 transition-opacity duration-300"></div>
+              <div className="absolute -inset-1 rounded-2xl opacity-20 blur-md group-hover:opacity-40 transition-opacity duration-300"></div>
               <img 
                 src="/images/logo-itcareermatch.png" 
                 alt="ITCareerMatch Logo" 
@@ -158,7 +158,7 @@ export default function DashLayout() {
           </NavLink>
           <button 
             onClick={handleLogout} 
-            className="w-full flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-semibold text-rose-600 hover:bg-rose-50/70 transition-all duration-300 group"
+            className="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold text-rose-600 hover:bg-rose-50/70 transition-all duration-300 group"
           >
             <FiLogOut size={18} className="text-rose-400 group-hover:text-rose-600 transition-colors" /> 
             <span className="tracking-tight">Keluar</span>
