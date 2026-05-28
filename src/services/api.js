@@ -1,5 +1,68 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+// ============================================================
+// Interceptor Pattern: Helper function untuk request yang konsisten
+// ============================================================
+
+const DEFAULT_HEADERS = { 'Content-Type': 'application/json' };
+
+/**
+ * Fungsi utama untuk melakukan API request dengan pola konsisten
+ * @param {string} endpoint - Path API (tanpa base URL)
+ * @param {Object} options - Options untuk fetch
+ * @param {Object} options.token - Token autentikasi (optional)
+ * @param {Object} options.body - Body request (optional)
+ * @param {Object} options.queryParams - Query parameters (optional)
+ * @param {boolean} options.isFormData - Apakah menggunakan FormData (optional)
+ * @returns {Promise<Object>} - Response data dari API
+ */
+
+export async function apiRequest(endpoint, {
+  token = null,
+  body = null,
+  queryParams = null,
+  isFormData = false,
+} = {}) {
+  const url = new URL(`${API_BASE_URL}${endpoint}`);
+
+  if (queryParams) {
+    Object.entries(queryParams).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        url.searchParams.append(key, String(value));
+      }
+    });
+  }
+
+  const headers = isFormData ? {} : { ...DEFAULT_HEADERS };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const options = {
+    method: 'GET',
+    headers,
+  };
+
+  if (body) {
+    options.method = 'POST';
+    options.body = isFormData ? body : JSON.stringify(body);
+  }
+
+  const response = await fetch(url.toString(), options);
+  const result = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(result?.message || `Request gagal (HTTP ${response.status})`);
+  }
+
+  if (!result?.success) {
+    throw new Error(result?.message || 'Respons API tidak berhasil');
+  }
+
+  return result;
+}
+
+// Legacy helper untuk backward compatibility
 const buildHeaders = (token) => ({
   'Content-Type': 'application/json',
   ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -23,7 +86,8 @@ export async function updateUserProfile(token, formData) {
   const response = await fetch(`${API_BASE_URL}/api/v1/user/profile`, {
     method: 'PUT',
     headers: {
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      // NOTE: Content-Type omitted for FormData - browser sets it automatically with boundary
     },
     body: formData,
   });

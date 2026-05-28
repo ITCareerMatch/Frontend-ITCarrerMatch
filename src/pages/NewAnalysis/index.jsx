@@ -7,7 +7,8 @@ import {
   FiCheckCircle, FiShield, FiFileText, FiTarget, FiBriefcase, FiX
 } from 'react-icons/fi';
 import { BsStars, BsLightbulbFill } from 'react-icons/bs';
-import { uploadCV, fetchAnalysisHistory } from '../../services/api'; // Menggunakan uploadCV instan
+// BUG #2 FIX: Ganti uploadCV → analyzeCV (FLOW C - user login analisis baru)
+import { analyzeCV, fetchAnalysisHistory } from '../../services/api';
 
 // Konfigurasi animasi seragam
 // eslint-disable-next-line no-unused-vars
@@ -32,7 +33,7 @@ export default function NewAnalysis() {
 
   const [activeTab, setActiveTab] = useState('upload');
   const [file, setFile] = useState(null);
-  
+
   // State untuk input manual
   const [pengalaman, setPengalaman] = useState('');
   const [keahlian, setKeahlian] = useState('');
@@ -52,7 +53,8 @@ export default function NewAnalysis() {
     const fetchHistory = async () => {
       try {
         const data = await fetchAnalysisHistory(token, 1, 10);
-        setHistory(Array.isArray(data) ? data : data.data || []);
+        // MINOR #4 FIX: api.js sudah mengembalikan result.data (array langsung)
+        setHistory(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Error fetching history:', err);
       } finally {
@@ -77,7 +79,7 @@ export default function NewAnalysis() {
     }
   };
 
-  // Memulai analisis menggunakan alur sinkron langsung (uploadCV) seperti di PreLoginFlow
+  // BUG #2 FIX: FLOW C — User login analisis baru → /cv/analyze → polling /cv/status/:task_id
   const handleStartAnalysis = async () => {
     // Validasi berdasarkan Tab Aktif
     if (activeTab === 'upload' && !file) {
@@ -99,29 +101,24 @@ export default function NewAnalysis() {
     setError('');
 
     try {
-      let apiResult = null;
+      let taskId = null;
 
       if (activeTab === 'upload') {
-        // Memakai endpoint uploadCV instan langsung
-        apiResult = await uploadCV(file, null);
+        // Panggil /cv/analyze (bukan /cv/preview) — sesuai FLOW C arsitektur
+        taskId = await analyzeCV(token, file, null);
       } else {
-        // Gabungkan teks manual
+        // Gabungkan teks manual terstruktur sebelum dikirim ke AI
         const manualData = `Pengalaman Kerja:\n${pengalaman}\n\nDaftar Keahlian:\n${keahlian}`;
-        apiResult = await uploadCV(null, manualData);
+        taskId = await analyzeCV(token, null, manualData);
       }
 
-      if (!apiResult || !apiResult.preview) {
-        throw new Error("Respons analisis kosong atau tidak valid dari server.");
+      if (!taskId) {
+        throw new Error('Server tidak mengembalikan task_id. Silakan coba lagi.');
       }
 
-      // Simpan hasil pindaian sementara ke sessionStorage
-      sessionStorage.setItem('guest_cv_result', JSON.stringify({
-        ...apiResult.preview,
-        temp_token: apiResult.temp_token
-      }));
-      
-      // Lanjut ke hasil analisis (Halaman hasil akan otomatis mengklaim temp_token ke akun user Anda)
-      navigate('/analisis-result'); 
+      // Navigasi ke halaman hasil dengan membawa taskId untuk polling
+      // TIDAK menyimpan ke sessionStorage karena ini alur user terautentikasi (FLOW C)
+      navigate('/analisis-result', { state: { taskId } });
 
     } catch (err) {
       setError(err.message || 'Gagal memproses analisis profil Anda. Silakan coba lagi.');
@@ -131,13 +128,13 @@ export default function NewAnalysis() {
   };
 
   // Logika pengecekan validasi form untuk mematikan tombol
-  const isFormValid = activeTab === 'upload' 
-    ? !!file 
+  const isFormValid = activeTab === 'upload'
+    ? !!file
     : (pengalaman.trim().length >= 5 && keahlian.trim().length >= 5);
 
   return (
     <div className="max-w-7xl mx-auto pb-12 selection:bg-blue-500/10 selection:text-blue-600 animate-fadeIn">
-      
+
       {/* --- PAGE HEADER --- */}
       <div className="flex items-center gap-4 mb-8 text-left">
         <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-slate-950/15 border border-slate-800">
@@ -150,16 +147,16 @@ export default function NewAnalysis() {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8">
-        
+
         {/* KOLOM KIRI (Area Input Utama) */}
         <div className="lg:w-2/3">
-          <motion.div 
+          <motion.div
             initial="hidden"
             animate="visible"
             variants={staggerContainer}
             className="bg-white/70 backdrop-blur-md rounded-3xl p-6 md:p-8 border border-slate-200/60 shadow-lg shadow-slate-200/30"
           >
-            
+
             {/* Progress Tracker (Premium Design) */}
             <div className="flex items-center justify-between mb-8 relative hidden sm:flex px-2 select-none">
               <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 -z-10 -translate-y-1/2"></div>
@@ -179,14 +176,14 @@ export default function NewAnalysis() {
 
             {/* Toggle Tabs (Vercel Style) */}
             <div className="flex bg-slate-50 p-1 rounded-2xl border border-slate-200 shadow-inner mb-8">
-              <button 
-                onClick={() => { setActiveTab('upload'); setError(''); }} 
+              <button
+                onClick={() => { setActiveTab('upload'); setError(''); }}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'upload' ? 'bg-white text-slate-900 shadow-md border border-slate-200/80 font-extrabold' : 'text-slate-500 hover:text-slate-800 hover:bg-white/40'}`}
               >
                 <FiUploadCloud size={16}/> Unggah File
               </button>
-              <button 
-                onClick={() => { setActiveTab('manual'); setError(''); }} 
+              <button
+                onClick={() => { setActiveTab('manual'); setError(''); }}
                 className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTab === 'manual' ? 'bg-white text-slate-900 shadow-md border border-slate-200/80 font-extrabold' : 'text-slate-500 hover:text-slate-800 hover:bg-white/40'}`}
               >
                 <FiEdit2 size={16}/> Isi Manual
@@ -208,12 +205,12 @@ export default function NewAnalysis() {
                       <input
                         type="file"
                         onChange={handleFileChange}
-                        accept=".pdf,.docx"
+                        accept=".pdf"
                         className="hidden"
                       />
                       {file ? (
-                        <div 
-                          className="flex items-center gap-4 bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm w-full max-w-sm cursor-default animate-fadeIn" 
+                        <div
+                          className="flex items-center gap-4 bg-white p-4.5 rounded-2xl border border-slate-200 shadow-sm w-full max-w-sm cursor-default animate-fadeIn"
                           onClick={(e) => e.preventDefault()}
                         >
                           <div className="bg-blue-50 p-3 rounded-xl text-blue-600 border border-blue-100"><FiFileText size={22} /></div>
@@ -221,7 +218,6 @@ export default function NewAnalysis() {
                             <p className="font-bold text-sm text-slate-900 truncate">{file.name}</p>
                             <p className="text-[10px] text-emerald-600 font-extrabold flex items-center gap-1 mt-1 uppercase tracking-wider"><FiCheckCircle /> Siap dianalisis</p>
                           </div>
-                          {/* Tombol silang untuk menghapus file secara dinamis */}
                           <button
                             type="button"
                             onClick={(e) => {
@@ -243,7 +239,6 @@ export default function NewAnalysis() {
                           <p className="text-xs text-slate-500 mb-6 font-semibold">atau klik untuk memilih file</p>
                           <div className="flex gap-2.5 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                             <span className="bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">PDF</span>
-                            <span className="bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">DOCX</span>
                             <span className="bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">Maks 1MB</span>
                           </div>
                         </>
@@ -296,13 +291,13 @@ export default function NewAnalysis() {
               className={`w-full font-bold py-4 rounded-2xl shadow-md transition-all flex justify-center items-center gap-2 cursor-pointer text-sm ${isAnalyzing || !isFormValid ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-slate-900/10'}`}
             >
               {isAnalyzing ? (
-                <><FiRefreshCw className="animate-spin" size={18} /> Memproses Analisis AI...</>
+                <><FiRefreshCw className="animate-spin" size={18} /> Mengirim ke Antrian AI...</>
               ) : (
                 <><FiZap size={18} /> Mulai Analisis Penuh</>
               )}
             </button>
             <p className="text-center text-[10px] font-bold text-slate-400 mt-4 uppercase tracking-wide">
-              Hasil analisis akan menyajikan evaluasi skor, gap keahlian, dan narasi perbaikan secara terperinci.
+              Hasil analisis akan menyajikan evaluasi skor, gap keahlian, dan rekomendasi lowongan secara terperinci.
             </p>
 
           </motion.div>
@@ -310,7 +305,7 @@ export default function NewAnalysis() {
 
         {/* KOLOM KANAN (Riwayat & Widget Tambahan) */}
         <div className="lg:w-1/3 space-y-6 text-left shrink-0">
-          
+
           {/* DAFTAR RIWAYAT PINDAIAN USER */}
           <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/60 shadow-sm">
             <h3 className="font-extrabold text-slate-900 mb-1 text-sm uppercase tracking-wider flex items-center gap-2"><FiTarget size={16} className="text-indigo-500"/> Riwayat Analisis</h3>
@@ -335,8 +330,8 @@ export default function NewAnalysis() {
                         <FiTarget size={18}/>
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1 truncate capitalize">{scan.job_title || 'Analisis CV'}</p>
-                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{new Date(scan.created_at).toLocaleDateString('id-ID')} · Skor: {Math.round(scan.score || scan.match_score || 0)}</p>
+                        <p className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1 truncate capitalize">{scan.job_title || scan.job_title_snapshot || 'Analisis CV'}</p>
+                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{new Date(scan.created_at).toLocaleDateString('id-ID')} · Skor: {Math.round(scan.match_score || scan.score || 0)}</p>
                       </div>
                     </div>
                     <FiRefreshCw className="text-slate-300 group-hover:text-indigo-600 transition-colors shrink-0" size={15} />
@@ -353,17 +348,18 @@ export default function NewAnalysis() {
              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
              <h3 className="font-bold text-sm mb-4 flex items-center gap-2 uppercase tracking-wider relative z-10"><BsStars className="text-amber-300"/> Real-time Scan AI</h3>
              <ul className="space-y-3 text-xs text-slate-400 relative z-10 font-semibold">
-               <li className="flex items-center gap-3"><div className="bg-white/5 p-2 rounded-xl text-blue-400 border border-white/5"><FiZap size={14}/></div> Skor kecocokan instan (0-100)</li>
+               <li className="flex items-center gap-3"><div className="bg-white/5 p-2 rounded-xl text-blue-400 border border-white/5"><FiZap size={14}/></div> Skor kecocokan mendalam (0-100)</li>
                <li className="flex items-center gap-3"><div className="bg-white/5 p-2 rounded-xl text-emerald-400 border border-white/5"><FiCheckCircle size={14}/></div> Analisis Skill Match & Gap</li>
                <li className="flex items-center gap-3"><div className="bg-white/5 p-2 rounded-xl text-purple-400 border border-white/5"><FiFileText size={14}/></div> Saran perbaikan kalimat AI</li>
-               <li className="flex items-center gap-3"><div className="bg-white/5 p-2 rounded-xl text-amber-400 border border-white/5"><FiBriefcase size={14}/></div> Rekomendasi lowongan baru</li>
+               <li className="flex items-center gap-3"><div className="bg-white/5 p-2 rounded-xl text-amber-400 border border-white/5"><FiBriefcase size={14}/></div> Top-20 rekomendasi lowongan</li>
              </ul>
           </div>
 
           <div className="bg-white/85 backdrop-blur-md p-6 rounded-3xl border border-slate-200/60 shadow-sm">
             <h3 className="font-bold text-slate-950 text-sm mb-4 flex items-center gap-2"><BsLightbulbFill className="text-amber-400 shrink-0"/> Tips Kelulusan ATS</h3>
             <ul className="space-y-3 text-xs text-slate-500 font-medium">
-              <li className="flex items-start gap-2"><FiCheckCircle className="text-emerald-500 shrink-0 mt-0.5"/> <span>Pastikan struktur berkas yang diunggah bebas dari tabel rumit agar parser parser teks internal AI kami bekerja optimal.</span></li>
+              <li className="flex items-start gap-2"><FiCheckCircle className="text-emerald-500 shrink-0 mt-0.5"/> <span>Gunakan format PDF satu kolom agar parser teks backend AI kami bekerja optimal.</span></li>
+              <li className="flex items-start gap-2"><FiShield className="text-blue-500 shrink-0 mt-0.5"/> <span>Sertakan kata kunci keahlian yang relevan dengan posisi yang Anda incar.</span></li>
             </ul>
           </div>
         </div>

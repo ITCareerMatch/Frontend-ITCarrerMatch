@@ -15,6 +15,7 @@ const CvEditor = lazy(() => import('../pages/CvEditor'));
 const JobList = lazy(() => import('../pages/JobList'));
 const NewAnalysis = lazy(() => import('../pages/NewAnalysis'));
 const AnalysisResult = lazy(() => import('../pages/AnalysisResult'));
+const AnalysisDetail = lazy(() => import('../pages/AnalysisDetail'));
 const DashboardJobs = lazy(() => import('../pages/DashboardJobs'));
 const Settings = lazy(() => import('../pages/Settings'));
 
@@ -69,6 +70,7 @@ const router = createBrowserRouter([
         children: [
           { path: 'dashboard', element: <ProtectedRoute><Dashboard /></ProtectedRoute> },
           { path: 'analisis-baru', element: <ProtectedRoute><NewAnalysis /></ProtectedRoute> },
+          { path: 'riwayat/:id', element: <ProtectedRoute><AnalysisDetail /></ProtectedRoute> },
           { path: 'daftar-lowongan', element: <ProtectedRoute><DashboardJobs /></ProtectedRoute> },
           
           // 2. RUTE DASBOR INTERNAL (Diakses dari Halaman Dasbor Pengguna)

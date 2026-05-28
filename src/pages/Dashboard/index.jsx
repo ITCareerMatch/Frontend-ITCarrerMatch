@@ -75,7 +75,7 @@ export default function Dashboard() {
       // Fetch History
       try {
         const historyData = await fetchAnalysisHistory(token, 1, 5); // Ambil 5 terbaru
-        setHistory(Array.isArray(historyData) ? historyData : (historyData?.data || []));
+        setHistory(Array.isArray(historyData) ? historyData : []);
       } catch (err) {
         console.error('Gagal memuat riwayat:', err);
       } finally {

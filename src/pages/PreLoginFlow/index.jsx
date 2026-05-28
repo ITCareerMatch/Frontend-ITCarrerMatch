@@ -78,10 +78,18 @@ export default function PreLoginFlow() {
         apiResult = await uploadCV(null, manualData);
       }
 
-      // Simpan preview & temp_token ke sessionStorage (Sesi Guest)
+      // 👈 PERBAIKAN: Pengaman ekstraksi preview & temp_token dari respons uploadCV
+      const previewData = apiResult?.preview || apiResult?.data || apiResult;
+      const tempToken = apiResult?.temp_token || apiResult?.data?.temp_token || apiResult?.tempToken;
+
+      if (!previewData) {
+        throw new Error("Respons analisis kosong atau tidak valid dari server.");
+      }
+
+      // Simpan preview & temp_token ke sessionStorage (Sesi Guest) secara utuh
       sessionStorage.setItem('guest_cv_result', JSON.stringify({
-        ...apiResult.preview,
-        temp_token: apiResult.temp_token
+        ...previewData,
+        temp_token: tempToken
       }));
       
       // Lanjut ke halaman hasil analisis
@@ -221,7 +229,7 @@ export default function PreLoginFlow() {
                         <input
                           type="file"
                           onChange={handleFileChange}
-                          accept=".pdf,.docx"
+                          accept=".pdf"
                           className="hidden"
                         />
                         {file ? (
@@ -256,7 +264,6 @@ export default function PreLoginFlow() {
                             <p className="text-xs text-slate-500 mb-6 font-semibold">atau klik untuk memilih file</p>
                             <div className="flex gap-2.5 text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                               <span className="bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">PDF</span>
-                              <span className="bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">DOCX</span>
                               <span className="bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">Maks 1MB</span>
                             </div>
                           </>
