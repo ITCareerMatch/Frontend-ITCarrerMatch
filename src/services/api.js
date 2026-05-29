@@ -275,3 +275,34 @@ export async function fetchAnalysisDetail(token, analysisId) {
   if (!response.ok) throw new Error(result?.message || `Gagal mengambil detail analisis (HTTP ${response.status})`);
   return result.data;
 }
+
+/**
+ * Ambil daftar arsip CV user
+ * GET /api/v1/cv/archives
+ */
+export async function fetchCVArchives(token, page = 1, limit = 10) {
+  if (!token) throw new Error('Missing access token');
+  const query = new URLSearchParams({ page: String(page), limit: String(limit) });
+  const response = await fetch(`${API_BASE_URL}/api/v1/cv/archives?${query.toString()}`, {
+    method: 'GET',
+    headers: buildHeaders(token),
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(result?.message || `Gagal mengambil arsip CV (HTTP ${response.status})`);
+  return result;
+}
+
+/**
+ * Hapus arsip CV (cascades ke skills, analysis, storage)
+ * DELETE /api/v1/cv/archives/{id}
+ */
+export async function deleteCVArchive(token, archiveId) {
+  if (!token) throw new Error('Missing access token');
+  const response = await fetch(`${API_BASE_URL}/api/v1/cv/archives/${archiveId}`, {
+    method: 'DELETE',
+    headers: buildHeaders(token),
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(result?.message || `Gagal menghapus arsip CV (HTTP ${response.status})`);
+  return result;
+}

@@ -7,6 +7,7 @@ import { BsStars } from 'react-icons/bs';
 import { FcGoogle } from 'react-icons/fc';
 import { FaStar } from 'react-icons/fa';
 import { supabase } from '../../lib/supabase';
+import Swal from 'sweetalert2';
 
 // Konfigurasi animasi seragam
 const fadeInUp = {
@@ -43,12 +44,41 @@ export default function Login() {
         email,
         password,
       });
-      
+
       if (error) throw error;
       if (!data || !data.session) throw new Error('Login gagal, periksa kembali email dan password Anda.');
 
       localStorage.setItem('access_token', data.session.access_token);
       await supabase.auth.setSession(data.session);
+
+      // Cek apakah ada pending profile update dari register
+      const pendingProfile = localStorage.getItem('pending_profile_update');
+      if (pendingProfile) {
+        try {
+          const profileData = JSON.parse(pendingProfile);
+          // Update profile ke backend dengan field yang sesuai API
+          const formData = new FormData();
+          formData.append('name', profileData.name || '');
+          formData.append('gender', profileData.gender || '');
+          formData.append('birth_date', profileData.birth_date || '');
+          formData.append('education_level', profileData.education_level || '');
+          formData.append('experience_level', profileData.experience_level || '');
+
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/v1/user/profile`, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${data.session.access_token}` },
+            body: formData,
+          });
+
+          if (response.ok) {
+            localStorage.removeItem('pending_profile_update');
+          }
+        } catch (profileErr) {
+          console.warn('Gagal update profile awal:', profileErr);
+          // Tetap lanjut ke redirect meskipun gagal update profile
+        }
+      }
+
       navigate(redirectTarget);
     } catch (error) {
       setErrorMsg(error.message === "Invalid login credentials" ? "Email atau password salah." : error.message);

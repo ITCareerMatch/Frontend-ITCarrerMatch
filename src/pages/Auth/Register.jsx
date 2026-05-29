@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
-import { FiMail, FiLock, FiCheckCircle, FiZap, FiShield, FiUser, FiArrowLeft, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiMail, FiLock, FiCheckCircle, FiZap, FiShield, FiUser, FiArrowLeft, FiEye, FiEyeOff, FiCalendar, FiBriefcase, FiBook } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
 import { FcGoogle } from 'react-icons/fc';
 import { FaStar } from 'react-icons/fa';
@@ -30,6 +30,9 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false); // State baru untuk cek sandi utama
   const [showConfirmPassword, setShowConfirmPassword] = useState(false); // State baru untuk cek konfirmasi sandi
   const [gender, setGender] = useState('');
+  const [birth_date, setBirthDate] = useState('');
+  const [education_level, setEducationLevel] = useState('');
+  const [experience_level, setExperienceLevel] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -60,6 +63,16 @@ export default function Register() {
 
       if (error) throw error;
       if (!data) throw new Error('Respons Supabase tidak valid.');
+
+      // Simpan data tambahan ke localStorage untuk di-submit saat login pertama
+      // Backend akan baca field ini untuk hard filtering AI
+      localStorage.setItem('pending_profile_update', JSON.stringify({
+        name,
+        gender,
+        birth_date: birth_date,
+        education_level: education_level,
+        experience_level: experience_level
+      }));
 
       // PENCEGAHAN AUTO-LOGIN: Bersihkan seluruh session lokal bawaan Supabase
       await supabase.auth.signOut();
@@ -284,7 +297,7 @@ export default function Register() {
                   required 
                   value={password} 
                   onChange={(e) => setPassword(e.target.value)} 
-                  placeholder="Min. 8 Karakter" 
+                  placeholder="Min. 6 Karakter" 
                   className="w-full pl-11 pr-12 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none text-sm font-semibold bg-slate-50/50 focus:bg-white transition-all text-slate-800"
                 />
                 <button
@@ -322,16 +335,62 @@ export default function Register() {
 
             <div>
               <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Jenis Kelamin</label>
-              <select 
-                required 
-                value={gender} 
-                onChange={(e) => setGender(e.target.value)} 
+              <select
+                required
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3 pl-4 pr-10 text-xs font-bold text-slate-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all cursor-pointer"
               >
                 <option disabled value="">Pilih Gender</option>
                 <option value="male">Laki-Laki</option>
                 <option value="female">Perempuan</option>
                 <option value="other">Lainnya</option>
+              </select>
+            </div>
+
+            {/* Field Baru: Tanggal Lahir */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><FiCalendar size={14} /> Tanggal Lahir</label>
+              <input
+                type="date"
+                required
+                value={birth_date}
+                onChange={(e) => setBirthDate(e.target.value)}
+                className="w-full pl-4 pr-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none text-sm font-semibold bg-slate-50/50 focus:bg-white transition-all text-slate-800 cursor-pointer"
+              />
+            </div>
+
+            {/* Field Baru: Pendidikan Terakhir */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><FiBook size={14} /> Pendidikan Terakhir</label>
+              <select
+                required
+                value={education_level}
+                onChange={(e) => setEducationLevel(e.target.value)}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3 pl-4 pr-10 text-xs font-bold text-slate-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all cursor-pointer"
+              >
+                <option disabled value="">Pilih Pendidikan</option>
+                <option value="SMA">SMA / SMK</option>
+                <option value="D3">Diploma 3 (D3)</option>
+                <option value="S1">Sarjana (S1)</option>
+                <option value="S2">Magister (S2)</option>
+                <option value="S3">Doktor (S3)</option>
+              </select>
+            </div>
+
+            {/* Field Baru: Pengalaman Kerja */}
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><FiBriefcase size={14} /> Pengalaman Kerja</label>
+              <select
+                required
+                value={experience_level}
+                onChange={(e) => setExperienceLevel(e.target.value)}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3 pl-4 pr-10 text-xs font-bold text-slate-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 outline-none transition-all cursor-pointer"
+              >
+                <option disabled value="">Pilih Pengalaman</option>
+                <option value="junior">Junior</option>
+                <option value="mid">Mid</option>
+                <option value="senior">Senior</option>
               </select>
             </div>
 

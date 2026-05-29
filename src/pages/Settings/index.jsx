@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom'; // Import untuk memindahkan modal foto ke tingkat bodi dokumen
-import { 
-  FiMail, FiLock, FiBell, FiSave, FiCheckCircle, 
-  FiArrowRight, FiTrendingUp, FiFileText, 
+import {
+  FiMail, FiLock, FiBell, FiSave, FiCheckCircle,
+  FiArrowRight, FiTrendingUp, FiFileText,
   FiCamera, FiEdit2, FiX, FiRefreshCw, FiUser,
   FiCalendar, FiHash, FiTrash2, FiAlertTriangle, FiZoomIn, FiUploadCloud,
-  FiEye, FiEyeOff
+  FiEye, FiEyeOff, FiBriefcase, FiMapPin
 } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
 import { useNavigate } from 'react-router-dom';
@@ -54,7 +54,16 @@ export default function Settings() {
     email: '',
     gender: '',
     created_at: '',
-    avatar_url: ''
+    avatar_url: '',
+    birth_date: '',
+    education_level: '',
+    experience_level: '',
+    city: '',
+    province: '',
+    min_salary_expect: '',
+    max_salary_expect: '',
+    bio: '',
+    skills_overview: ''
   });
 
   // --- FITUR BARU: STATE UNTUK CROP/SESUAIKAN FOTO ---
@@ -100,7 +109,16 @@ export default function Settings() {
           email: data?.email || '',
           gender: data?.gender || '',
           created_at: data?.created_at || '',
-          avatar_url: data?.avatar_url || ''
+          avatar_url: data?.avatar_url || '',
+          birth_date: data?.birth_date || '',
+          education_level: data?.education_level || '',
+          experience_level: data?.experience_level || '',
+          city: data?.city || '',
+          province: data?.province || '',
+          min_salary_expect: data?.min_salary_expect || '',
+          max_salary_expect: data?.max_salary_expect || '',
+          bio: data?.bio || '',
+          skills_overview: data?.skills_overview || ''
         });
       } catch (err) {
         console.error("Gagal memuat profil:", err);
@@ -244,11 +262,20 @@ export default function Settings() {
     try {
       if (section === 'profile') {
         const formData = new FormData();
-        formData.append('name', profileData.name);
-        formData.append('gender', profileData.gender);
+        formData.append('name', profileData.name || '');
+        formData.append('gender', profileData.gender || '');
+        formData.append('birth_date', profileData.birth_date || '');
+        formData.append('education_level', profileData.education_level || '');
+        formData.append('experience_level', profileData.experience_level || '');
+        formData.append('city', profileData.city || '');
+        formData.append('province', profileData.province || '');
+        formData.append('min_salary_expect', profileData.min_salary_expect || '');
+        formData.append('max_salary_expect', profileData.max_salary_expect || '');
+        formData.append('bio', profileData.bio || '');
+        formData.append('skills_overview', profileData.skills_overview || '');
 
         const resultData = await updateUserProfile(token, formData);
-        
+
         if (resultData && resultData.avatar_url) {
            setProfileData(prev => ({ ...prev, avatar_url: resultData.avatar_url }));
         }
@@ -486,11 +513,11 @@ export default function Settings() {
 
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><FiUser size={14} /> Jenis Kelamin</label>
-                <select 
-                  name="gender" 
-                  disabled={!editMode.profile} 
-                  value={profileData.gender} 
-                  onChange={handleChange} 
+                <select
+                  name="gender"
+                  disabled={!editMode.profile}
+                  value={profileData.gender}
+                  onChange={handleChange}
                   className={getInputClass(editMode.profile) + " cursor-pointer"}
                 >
                   <option value="">Pilih Jenis Kelamin</option>
@@ -498,6 +525,130 @@ export default function Settings() {
                   <option value="female">Perempuan</option>
                   <option value="other">Lainnya</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><FiCalendar size={14} /> Tanggal Lahir</label>
+                <input
+                  type="date"
+                  name="birth_date"
+                  disabled={!editMode.profile}
+                  value={profileData.birth_date || ''}
+                  onChange={handleChange}
+                  className={getInputClass(editMode.profile)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><FiBriefcase size={14} /> Pendidikan Terakhir</label>
+                <select
+                  name="education_level"
+                  disabled={!editMode.profile}
+                  value={profileData.education_level || ''}
+                  onChange={handleChange}
+                  className={getInputClass(editMode.profile) + " cursor-pointer"}
+                >
+                  <option value="">Pilih Pendidikan</option>
+                  <option value="SMA">SMA / SMK</option>
+                  <option value="D3">Diploma 3 (D3)</option>
+                  <option value="S1">Sarjana (S1)</option>
+                  <option value="S2">Magister (S2)</option>
+                  <option value="S3">Doktor (S3)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><FiBriefcase size={14} /> Pengalaman Kerja</label>
+                <select
+                  name="experience_level"
+                  disabled={!editMode.profile}
+                  value={profileData.experience_level || ''}
+                  onChange={handleChange}
+                  className={getInputClass(editMode.profile) + " cursor-pointer"}
+                >
+                  <option value="">Pilih Pengalaman</option>
+                  <option value="junior">Junior</option>
+                  <option value="mid">Mid</option>
+                  <option value="senior">Senior</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><FiMapPin size={14} /> Kota</label>
+                <input
+                  type="text"
+                  name="city"
+                  disabled={!editMode.profile}
+                  value={profileData.city || ''}
+                  onChange={handleChange}
+                  className={getInputClass(editMode.profile)}
+                  placeholder="Contoh: Jakarta"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><FiMapPin size={14} /> Provinsi</label>
+                <input
+                  type="text"
+                  name="province"
+                  disabled={!editMode.profile}
+                  value={profileData.province || ''}
+                  onChange={handleChange}
+                  className={getInputClass(editMode.profile)}
+                  placeholder="Contoh: DKI Jakarta"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Bio / Ringkasan Profil</label>
+                <textarea
+                  name="bio"
+                  disabled={!editMode.profile}
+                  value={profileData.bio || ''}
+                  onChange={handleChange}
+                  rows="3"
+                  className={getInputClass(editMode.profile) + " resize-none"}
+                  placeholder="Ceritakan singkat tentang diri Anda..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Keahlian Teknis (pisahkan dengan koma)</label>
+                <input
+                  type="text"
+                  name="skills_overview"
+                  disabled={!editMode.profile}
+                  value={profileData.skills_overview || ''}
+                  onChange={handleChange}
+                  className={getInputClass(editMode.profile)}
+                  placeholder="React, Node.js, Python, Figma..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Ekspektasi Gaji Minimum (IDR)</label>
+                <input
+                  type="number"
+                  name="min_salary_expect"
+                  disabled={!editMode.profile}
+                  value={profileData.min_salary_expect || ''}
+                  onChange={handleChange}
+                  className={getInputClass(editMode.profile)}
+                  placeholder="5000000"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Ekspektasi Gaji Maksimum (IDR)</label>
+                <input
+                  type="number"
+                  name="max_salary_expect"
+                  disabled={!editMode.profile}
+                  value={profileData.max_salary_expect || ''}
+                  onChange={handleChange}
+                  className={getInputClass(editMode.profile)}
+                  placeholder="15000000"
+                />
               </div>
 
               <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
@@ -714,28 +865,72 @@ export default function Settings() {
             
             {/* Perhitungan Kekuatan Kelengkapan Secara Dinamis */}
             {(() => {
-              let score = 25; // email default terverifikasi
-              let steps = [{ label: "Verifikasi Email", done: true }];
-              
+              // Distribusi score untuk 10 item (10% masing-masing)
+              // Email sudah terverifikasi otomatis (saat register)
+              let score = 10;
+              let steps = [{ label: "Email Terverifikasi", done: true }];
+
               if (profileData.name && profileData.name.trim().length > 0) {
-                score += 25;
-                steps.push({ label: "Lengkapi Nama Lengkap", done: true });
+                score += 10;
+                steps.push({ label: "Nama Lengkap", done: true });
               } else {
-                steps.push({ label: "Lengkapi Nama Lengkap", done: false });
+                steps.push({ label: "Nama Lengkap", done: false });
               }
-              
-              if (profileData.gender && profileData.gender.trim().length > 0) {
-                score += 25;
-                steps.push({ label: "Pilih Jenis Kelamin", done: true });
-              } else {
-                steps.push({ label: "Pilih Jenis Kelamin", done: false });
-              }
-              
+
               if (profileData.avatar_url && profileData.avatar_url.trim().length > 0) {
-                score += 25;
-                steps.push({ label: "Unggah Foto Profil", done: true });
+                score += 10;
+                steps.push({ label: "Foto Profil", done: true });
               } else {
-                steps.push({ label: "Unggah Foto Profil", done: false });
+                steps.push({ label: "Foto Profil", done: false });
+              }
+
+              if (profileData.gender && profileData.gender.trim().length > 0) {
+                score += 10;
+                steps.push({ label: "Jenis Kelamin", done: true });
+              } else {
+                steps.push({ label: "Jenis Kelamin", done: false });
+              }
+
+              if (profileData.birth_date && profileData.birth_date.trim().length > 0) {
+                score += 10;
+                steps.push({ label: "Tanggal Lahir", done: true });
+              } else {
+                steps.push({ label: "Tanggal Lahir", done: false });
+              }
+
+              if (profileData.education_level && profileData.education_level.trim().length > 0) {
+                score += 10;
+                steps.push({ label: "Pendidikan", done: true });
+              } else {
+                steps.push({ label: "Pendidikan", done: false });
+              }
+
+              if (profileData.experience_level && profileData.experience_level.trim().length > 0) {
+                score += 10;
+                steps.push({ label: "Pengalaman Kerja", done: true });
+              } else {
+                steps.push({ label: "Pengalaman Kerja", done: false });
+              }
+
+              if (profileData.city && profileData.city.trim().length > 0) {
+                score += 10;
+                steps.push({ label: "Lokasi (Kota)", done: true });
+              } else {
+                steps.push({ label: "Lokasi (Kota)", done: false });
+              }
+
+              if (profileData.bio && profileData.bio.trim().length > 0) {
+                score += 10;
+                steps.push({ label: "Bio / Ringkasan", done: true });
+              } else {
+                steps.push({ label: "Bio / Ringkasan", done: false });
+              }
+
+              if (profileData.skills_overview && profileData.skills_overview.trim().length > 0) {
+                score += 10;
+                steps.push({ label: "Keahlian Teknis", done: true });
+              } else {
+                steps.push({ label: "Keahlian Teknis", done: false });
               }
 
               const isFullyComplete = score === 100;
