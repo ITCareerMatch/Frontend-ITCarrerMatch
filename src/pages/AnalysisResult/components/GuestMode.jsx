@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+// eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
 import {
   FiLock, FiCheckCircle, FiXCircle, FiTrendingUp,
@@ -164,12 +165,14 @@ function BlurredCard({ icon, title, count, delay, colorClass }) {
  * Displays preview results for guest users with locked features
  * User must login/register to unlock full analysis
  */
+// eslint-disable-next-line no-unused-vars
 export default function GuestMode({ previewData, onLoginClick, onRegisterClick }) {
   const navigate = useNavigate();
   const score = previewData?.score ?? 0;
   const extractedSkills = previewData?.extracted_skills ?? [];
   const skillGap = previewData?.skill_gap ?? [];
   const aiInsight = previewData?.ai_insight ?? [];
+  const summary = previewData?.summary ?? [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 font-sans text-slate-800">
@@ -298,15 +301,15 @@ export default function GuestMode({ previewData, onLoginClick, onRegisterClick }
             <BlurredCard
               icon={<BsStars size={20} />}
               title="AI Insight"
-              count="Rekomendasi personal dari AI"
+              count={`${aiInsight.length} insight dihasilkan`}
               delay={1.2}
               colorClass="bg-amber-100 text-amber-600"
             />
 
             <BlurredCard
               icon={<FiBriefcase size={20} />}
-              title="Lowongan"
-              count="20 rekomendasi pekerjaan"
+              title="Summary"
+              count={`${summary.length} poin ringkasan`}
               delay={1.3}
               colorClass="bg-blue-100 text-blue-600"
             />
