@@ -16,6 +16,7 @@ const JobList = lazy(() => import('../pages/JobList'));
 const NewAnalysis = lazy(() => import('../pages/NewAnalysis'));
 const AnalysisResult = lazy(() => import('../pages/AnalysisResult'));
 const AnalysisDetail = lazy(() => import('../pages/AnalysisDetail'));
+const AnalysisHistory = lazy(() => import('../pages/AnalysisHistory'));
 const DashboardJobs = lazy(() => import('../pages/DashboardJobs'));
 const Settings = lazy(() => import('../pages/Settings'));
 
@@ -60,7 +61,6 @@ const router = createBrowserRouter([
       { path: '/cek-skor', element: <PreLoginFlow /> },
       { path: '/analisis-result', element: <AnalysisResult /> },
       
-      // 1. RUTE STANDALONE PUBLIK (Diakses dari JobList Tamu)
       { path: '/detail/:id', element: <JobDetail /> }, 
 
       { path: '/login', element: <PublicRoute><Login /></PublicRoute> },
@@ -70,10 +70,10 @@ const router = createBrowserRouter([
         children: [
           { path: 'dashboard', element: <ProtectedRoute><Dashboard /></ProtectedRoute> },
           { path: 'analisis-baru', element: <ProtectedRoute><NewAnalysis /></ProtectedRoute> },
+          { path: 'riwayat', element: <ProtectedRoute><AnalysisHistory /></ProtectedRoute> },
           { path: 'riwayat/:id', element: <ProtectedRoute><AnalysisDetail /></ProtectedRoute> },
           { path: 'daftar-lowongan', element: <ProtectedRoute><DashboardJobs /></ProtectedRoute> },
           
-          // 2. RUTE DASBOR INTERNAL (Diakses dari Halaman Dasbor Pengguna)
           { path: 'dashboard/detail/:id', element: <ProtectedRoute><JobDetail /></ProtectedRoute> }, 
           
           { path: 'editor', element: <ProtectedRoute><CvEditor /></ProtectedRoute> },

@@ -1,24 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import useAuth from '../../context/useAuth';
 // eslint-disable-next-line no-unused-vars
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FiCheckCircle, FiShield, FiZap, FiFileText, FiTarget, 
-  FiTrendingUp, FiClock, FiUploadCloud, FiSearch, FiBriefcase, 
-  FiMessageSquare, FiActivity, FiUsers, FiMenu, FiX, FiGithub, FiMail, FiHome, FiPhone,
+import { motion } from 'framer-motion';
+import {
+  FiCheckCircle, FiShield, FiZap, FiFileText, FiTarget,
+  FiTrendingUp, FiClock, FiUploadCloud, FiSearch, FiBriefcase,
+  FiMessageSquare, FiActivity, FiUsers, FiGithub,
   FiArrowRight, FiInfo
 } from 'react-icons/fi';
 import { BsArrowRight, BsStars, BsFillChatDotsFill } from 'react-icons/bs';
 import { FaStar } from 'react-icons/fa';
+import Navbar from '../../components/layout/Navbar';
+import Footer from '../../components/layout/Footer';
 
-// Animasi Konfigurasi Reusable Premium Bezier (Linear/Stripe Style)
+// Animation configs
 const fadeInUp = {
   hidden: { opacity: 0, y: 15 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } 
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] }
   }
 };
 
@@ -35,10 +36,6 @@ const staggerContainer = {
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { session } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const isLoggedIn = !!session || !!localStorage.getItem('access_token');
 
   // State untuk efek mengetik hero text berputar
   const [typedHeroText, setTypedHeroText] = useState('');
@@ -47,9 +44,6 @@ export default function LandingPage() {
   // State untuk koordinat 3D Mouse Tilt pada Gambar Hero
   const [rotateX, setRotateX] = useState(0);
   const [rotateY, setRotateY] = useState(0);
-
-  // State untuk FAQ Accordion
-  const [activeFaq, setActiveFaq] = useState(null);
 
   // Daftar logo perusahaan untuk marquee
   const partnerLogos = [
@@ -60,19 +54,6 @@ export default function LandingPage() {
     { src: "/images/bumn-logo.png", alt: "BUMN", h: "h-6" },
     { src: "/images/google-logo.png", alt: "Google", h: "h-7" }
   ];
-
-  // Deteksi scroll untuk memperbarui style navbar secara halus
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 15) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // Efek Mengetik Berputar Hero
   useEffect(() => {
@@ -124,130 +105,16 @@ export default function LandingPage() {
     setRotateY(0);
   };
 
-  // Handler scroll animasi halus ke ID target
-  const handleScrollTo = (e, id) => {
-    e.preventDefault();
-    const element = document.getElementById(id);
-    if (element) {
-      const offset = 80;
-      const bodyRect = document.body.getBoundingClientRect().top;
-      const elementRect = element.getBoundingClientRect().top;
-      const elementPosition = elementRect - bodyRect;
-      const offsetPosition = elementPosition - offset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }
-    setMobileMenuOpen(false);
-  };
-
-  // eslint-disable-next-line no-unused-vars
-  const toggleFaq = (index) => {
-    setActiveFaq(activeFaq === index ? null : index);
-  };
-
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-800 overflow-x-hidden relative selection:bg-blue-500/10 selection:text-blue-600">
-      
+
       {/* Dekorasi Grid Vercel & Radial Glow di Latar Belakang */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4.5rem_4.5rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-35 -z-10 pointer-events-none" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[650px] bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-100/30 via-transparent to-transparent -z-10 pointer-events-none animate-pulse duration-[8000ms]" />
       <div className="absolute top-[800px] right-0 w-[400px] h-[400px] bg-purple-100/10 rounded-full blur-3xl -z-10 pointer-events-none" />
 
-      {/* --- NAVBAR (Fixed dengan Glassmorphism Premium) --- */}
-      <motion.header 
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className={`flex justify-between items-center h-20 px-6 md:px-12 lg:px-16 fixed inset-x-0 top-0 z-50 transition-all duration-350 ${
-          isScrolled 
-            ? 'bg-white/80 backdrop-blur-xl border-b border-slate-200/50 shadow-md shadow-slate-100/20' 
-            : 'bg-white/30 backdrop-blur-sm border-b border-transparent'
-        }`}
-      >
-        {/* Logo */}
-        <div 
-          className="flex items-center gap-3 font-bold text-xl text-slate-900 cursor-pointer group" 
-          onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
-        >
-          <div className="relative">
-            <div className="absolute -inset-1 rounded-2xl opacity-20 blur-md group-hover:opacity-40 transition-opacity duration-300"></div>
-            <img src="/images/logo-itcareermatch.png" alt="ITCareerMatch Logo" className="w-11 h-11 object-contain relative rounded-2xl transition-transform duration-500 group-hover:rotate-6" />
-          </div>
-          <span className="bg-gradient-to-r from-slate-950 to-slate-800 bg-clip-text text-transparent font-extrabold tracking-tight">
-            ITCareerMatch
-          </span>
-        </div>
-
-        {/* Menu Desktop */}
-        <nav className="hidden md:flex gap-8 text-sm font-semibold text-slate-600">
-          <a onClick={(e) => handleScrollTo(e, 'cara-kerja')} className="hover:text-blue-600 transition-colors cursor-pointer tracking-tight">Cara Kerja</a>
-          <a onClick={(e) => handleScrollTo(e, 'fitur')} className="hover:text-blue-600 transition-colors cursor-pointer tracking-tight">Fitur AI</a>
-          <a onClick={() => navigate('/lowongan')} className="hover:text-blue-600 transition-colors cursor-pointer tracking-tight">Daftar Lowongan</a>
-          <a onClick={() => navigate('/tentang-kami')} className="hover:text-blue-600 transition-colors cursor-pointer tracking-tight">Tentang Kami</a>
-        </nav>
-
-        {/* Tombol Mobile Toggle */}
-        <button
-          type="button"
-          onClick={() => setMobileMenuOpen((prev) => !prev)}
-          className="md:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
-        >
-          {mobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
-        </button>
-
-        {/* Aksi Desktop */}
-        <div className="hidden md:flex items-center gap-4">
-          {isLoggedIn ? (
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="bg-white text-slate-700 px-5 py-2.5 rounded-2xl text-sm font-bold hover:bg-slate-50 border border-slate-200 shadow-sm transition-all cursor-pointer hover:border-slate-300 active:scale-95"
-            >
-              Ke Dashboard
-            </button>
-          ) : (
-            <button onClick={() => navigate('/login')} className="hover:text-blue-600 text-sm font-bold transition-colors cursor-pointer mr-2">
-              Masuk
-            </button>
-          )}
-          <button 
-            onClick={() => navigate('/cek-skor')}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-2xl text-sm font-bold hover:opacity-95 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2"
-          >
-            <BsStars /> Cek Skor CV
-          </button>
-        </div>
-      </motion.header>
-
-      {/* --- MOBILE MENU --- */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="fixed md:hidden inset-x-0 top-20 z-40 bg-white border-b border-slate-200/60 px-8 py-6 shadow-xl max-h-[calc(100vh-5rem)] overflow-y-auto"
-          > 
-            <div className="flex flex-col gap-4 text-sm font-bold text-slate-700 items-start bg-white">
-              <a onClick={(e) => handleScrollTo(e, 'cara-kerja')} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-slate-50 pb-3">Cara Kerja</a>
-              <a onClick={(e) => handleScrollTo(e, 'fitur')} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-slate-50 pb-3">Fitur AI</a>
-              <a onClick={() => { setMobileMenuOpen(false); navigate('/lowongan'); }} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-slate-50 pb-3">Daftar Lowongan</a>
-              <a onClick={() => { setMobileMenuOpen(false); navigate('/tentang-kami'); }} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-slate-50 pb-3">Tentang Kami</a>
-              <div className="flex flex-col gap-3 pt-3 w-full">
-                {isLoggedIn ? (
-                  <button onClick={() => { setMobileMenuOpen(false); navigate('/dashboard'); }} className="w-full bg-slate-50 text-slate-700 px-4 py-3 rounded-xl border border-slate-200 transition-colors font-bold">Ke Dashboard</button>
-                ) : (
-                  <button onClick={() => { setMobileMenuOpen(false); navigate('/login'); }} className="w-full text-center text-slate-700 px-4 py-3 rounded-xl hover:bg-gray-50 transition-colors border border-slate-200 font-bold">Masuk</button>
-                )}
-                <button onClick={() => { setMobileMenuOpen(false); navigate('/cek-skor'); }} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-xl hover:bg-blue-700 transition-all flex justify-center items-center gap-2 font-bold"><BsStars /> Cek Skor CV</button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* NAVBAR - Using reusable component */}
+      <Navbar variant="transparent" />
 
       {/* --- HERO SECTION --- */}
       <section className="pt-32 pb-20 px-6 md:px-12 lg:flex items-center justify-between gap-12 max-w-7xl mx-auto relative">
@@ -570,84 +437,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* --- FOOTER (GAYA CLEANIC LIGHT PREMIUM DENGAN INDIKATOR@ SINKRON) --- */}
-      <footer className="bg-white text-slate-600 pt-20 pb-8 px-6 md:px-12 lg:px-16 border-t border-slate-200/60 relative overflow-hidden">
-        {/* Subtle light glow inside the footer */}
-        <div className="absolute bottom-0 right-0 w-80 h-80 bg-blue-500/[0.02] rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-0 left-0 w-80 h-80 bg-purple-500/[0.01] rounded-full blur-3xl pointer-events-none" />
-
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-12 mb-16 relative z-10 text-left">
-          
-          {/* Column 1: Brand & Deskripsi */}
-          <div className="space-y-6">
-            <div 
-              className="flex items-center gap-3 font-bold text-xl text-slate-900 mb-4 cursor-pointer group w-max animate-fadeIn" 
-              onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
-            >
-              <div className="relative">
-                <div className="group-hover:opacity-20 transition-opacity duration-300"></div>
-                <img src="/images/logo-itcareermatch.png" alt="ITCareerMatch Logo" className="w-12 h-12 object-contain relative transition-transform duration-500 group-hover:rotate-6 p-0.5" />
-              </div>
-              <span className="bg-gradient-to-r from-slate-950 to-slate-800 bg-clip-text text-transparent font-extrabold tracking-tight">
-                ITCareerMatch
-              </span>
-            </div>
-            <p className="text-slate-500 text-sm leading-relaxed max-w-sm font-medium">
-              Platform analisis CV berbasis AI untuk membantu kamu memetakan celah kompetensi, mengoptimalkan resume ATS, dan melamar pekerjaan impian secara instan.
-            </p>
-          </div>
-
-          {/* Column 2: Quick Links dengan Ikon Aligned */}
-          <div className="space-y-6">
-            <h4 className="font-extrabold text-slate-900 text-sm uppercase tracking-wider">Quick Links</h4>
-            <ul className="space-y-4 text-sm text-slate-500 font-semibold">
-              <li>
-                <a onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="flex items-center gap-3 hover:text-blue-600 transition-colors cursor-pointer w-max">
-                  <FiHome className="text-slate-400" size={16} />
-                  <span>Beranda</span>
-                </a>
-              </li>
-              <li>
-                <a onClick={() => navigate('/lowongan')} className="flex items-center gap-3 hover:text-blue-600 transition-colors cursor-pointer w-max">
-                  <FiBriefcase className="text-slate-400" size={16} />
-                  <span>Daftar Lowongan</span>
-                </a>
-              </li>
-              <li>
-                <a onClick={() => navigate('/tentang-kami')} className="flex items-center gap-3 hover:text-blue-600 transition-colors cursor-pointer w-max">
-                  <FiUsers className="text-slate-400" size={16} />
-                  <span>Tentang Kami</span>
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 3: Kontak dengan Ikon Aligned */}
-          <div className="space-y-6">
-            <h4 className="font-extrabold text-slate-900 text-sm uppercase tracking-wider">Kontak</h4>
-            <ul className="space-y-4 text-sm text-slate-500 font-semibold">
-              <li className="flex items-center gap-3 w-max">
-                <span className="text-slate-400 font-extrabold text-base w-4 text-center">@</span>
-                <a href="https://github.com/ITCareerMatch" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">itcareermatch.com</a>
-              </li>
-              <li className="flex items-center gap-3 w-max">
-                <FiMail className="text-slate-400" size={16} />
-                <a href="mailto:cc26-psu088@example.com" className="hover:text-blue-600 transition-colors">itcareermatch@dicoding.com</a>
-              </li>
-              <li className="flex items-center gap-3 w-max">
-                <FiPhone className="text-slate-400" size={16} />
-                <span>+62 822-1098-0898</span>
-              </li>
-            </ul>
-          </div>
-
-        </div>
-
-        {/* Copyright Divider & Text */}
-        <div className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-          &copy; 2026 ITCareerMatch. Capstone Team - CC26-PSU088.
-        </div>
-      </footer>
+      {/* FOOTER */}
+      <Footer variant="full" />
 
       {/* --- FLOATING CHATBOT BUTTON --- */}
       <button className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-105 transition-all z-50 cursor-pointer">

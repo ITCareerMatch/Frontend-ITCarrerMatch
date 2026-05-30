@@ -19,13 +19,37 @@ import { supabase } from '../../lib/supabase';
 
 // --- KOMPONEN BANTUAN ---
 const ToggleSwitch = ({ active, onClick }) => (
-  <div 
+  <div
     onClick={onClick}
     className={`w-11 h-6 rounded-full relative cursor-pointer transition-colors duration-300 ${active ? 'bg-blue-600' : 'bg-slate-200'}`}
   >
     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform duration-300 ${active ? 'translate-x-6' : 'translate-x-1'}`}></div>
   </div>
 );
+
+// Helper: Convert ISO date string to YYYY-MM-DD format for input
+const toInputDateFormat = (dateString) => {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    return date.toISOString().split('T')[0];
+  } catch {
+    return '';
+  }
+};
+
+// Helper: Format date for display (Indonesian format)
+const FORMAT_DATE_DISPLAY = (dateString) => {
+  if (!dateString) return '-';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch {
+    return '-';
+  }
+};
 
 // Konfigurasi animasi seragam
 const fadeInUp = {
@@ -110,7 +134,7 @@ export default function Settings() {
           gender: data?.gender || '',
           created_at: data?.created_at || '',
           avatar_url: data?.avatar_url || '',
-          birth_date: data?.birth_date || '',
+          birth_date: toInputDateFormat(data?.birth_date), // Convert to YYYY-MM-DD
           education_level: data?.education_level || '',
           experience_level: data?.experience_level || '',
           city: data?.city || '',
@@ -144,6 +168,7 @@ export default function Settings() {
   // --- HANDLER TEXT INPUT ---
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // birth_date dari input date sudah dalam format YYYY-MM-DD, langsung simpan
     setProfileData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -386,16 +411,12 @@ export default function Settings() {
   };
 
   const getInputClass = (isEditing) => `w-full px-4 py-3 border rounded-xl outline-none text-sm transition-all duration-300 ${
-    isEditing 
-      ? 'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 bg-white text-slate-800 font-semibold shadow-sm' 
+    isEditing
+      ? 'border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 bg-white text-slate-800 font-semibold shadow-sm'
       : 'border-transparent bg-slate-50/50 text-slate-500 cursor-not-allowed font-semibold'
   }`;
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
-    const options = { day: 'numeric', month: 'long', year: 'numeric' };
-    return new Date(dateString).toLocaleDateString('id-ID', options);
-  };
+  // Display date in Indonesian format - uses FORMAT_DATE_DISPLAYDisplay helper
 
   if (loading) {
     return (
@@ -434,7 +455,7 @@ export default function Settings() {
           {/* BADGE MEMBER SEJAK - Naik ke dalam Area Banner Gambar */}
           <div className="absolute top-4 right-4 sm:top-6 sm:right-6 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl px-4 py-2 text-center flex flex-col justify-center shadow-lg">
              <span className="text-[9px] font-black text-blue-300 uppercase tracking-widest leading-none">Member Sejak</span>
-             <span className="text-xs sm:text-sm font-extrabold text-white mt-1 leading-none">{formatDate(profileData.created_at)}</span>
+             <span className="text-xs sm:text-sm font-extrabold text-white mt-1 leading-none">{FORMAT_DATE_DISPLAY(profileData.created_at)}</span>
           </div>
         </div>
         
@@ -654,7 +675,7 @@ export default function Settings() {
               <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><FiCalendar size={14} /> Tanggal Bergabung</label>
-                  <input type="text" disabled value={formatDate(profileData.created_at)} className={getInputClass(false)} />
+                  <input type="text" disabled value={FORMAT_DATE_DISPLAY(profileData.created_at)} className={getInputClass(false)} />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><FiHash size={14} /> ID Akun</label>

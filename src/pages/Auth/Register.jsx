@@ -20,6 +20,18 @@ const staggerContainer = {
   visible: { opacity: 1, transition: { staggerChildren: 0.08 } }
 };
 
+// Helper: Convert date to YYYY-MM-DD for input (required by browser date input)
+const TO_INPUT_DATE_FORMAT = (dateString) => {
+  if (!dateString) return '';
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    return date.toISOString().split('T')[0];
+  } catch {
+    return '';
+  }
+};
+
 export default function Register() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -354,7 +366,7 @@ export default function Register() {
               <input
                 type="date"
                 required
-                value={birth_date}
+                value={TO_INPUT_DATE_FORMAT(birth_date)}
                 onChange={(e) => setBirthDate(e.target.value)}
                 className="w-full pl-4 pr-4 py-3 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/5 focus:border-blue-500 outline-none text-sm font-semibold bg-slate-50/50 focus:bg-white transition-all text-slate-800 cursor-pointer"
               />

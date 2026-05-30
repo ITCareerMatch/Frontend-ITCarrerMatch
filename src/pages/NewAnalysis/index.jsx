@@ -4,10 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiUploadCloud, FiEdit2, FiRefreshCw, FiZap,
-  FiCheckCircle, FiShield, FiFileText, FiTarget, FiBriefcase, FiX
+  FiCheckCircle, FiShield, FiFileText, FiTarget, FiBriefcase, FiX,
+  FiClock, FiChevronRight, FiActivity
 } from 'react-icons/fi';
 import { BsStars, BsLightbulbFill } from 'react-icons/bs';
-// BUG #2 FIX: Ganti uploadCV → analyzeCV (FLOW C - user login analisis baru)
 import { analyzeCV, fetchAnalysisHistory } from '../../services/api';
 
 // Konfigurasi animasi seragam
@@ -25,6 +25,24 @@ const staggerContainer = {
       staggerChildren: 0.05
     }
   }
+};
+
+// Helper: Format date
+const formatDate = (dateString) => {
+  if (!dateString) return '-';
+  return new Date(dateString).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+// Helper: Get score status
+const getScoreStatus = (score) => {
+  if (score >= 80) return { label: 'Sangat Baik', color: 'emerald', bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100' };
+  if (score >= 60) return { label: 'Cukup', color: 'amber', bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100' };
+  return { label: 'Optimasi', color: 'rose', bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-100' };
 };
 
 export default function NewAnalysis() {
@@ -53,8 +71,9 @@ export default function NewAnalysis() {
     const fetchHistory = async () => {
       try {
         const data = await fetchAnalysisHistory(token, 1, 10);
-        // MINOR #4 FIX: api.js sudah mengembalikan result.data (array langsung)
-        setHistory(Array.isArray(data) ? data : []);
+        // Response: { success, data: [...], meta: { page, limit, total } }
+        const historyData = data?.data || [];
+        setHistory(Array.isArray(historyData) ? historyData : []);
       } catch (err) {
         console.error('Error fetching history:', err);
       } finally {
@@ -101,24 +120,25 @@ export default function NewAnalysis() {
     setError('');
 
     try {
-      let taskId = null;
+      let task_Id = null;
 
       if (activeTab === 'upload') {
         // Panggil /cv/analyze (bukan /cv/preview) — sesuai FLOW C arsitektur
-        taskId = await analyzeCV(token, file, null);
+        task_Id = await analyzeCV(token, file, null);
       } else {
         // Gabungkan teks manual terstruktur sebelum dikirim ke AI
         const manualData = `Pengalaman Kerja:\n${pengalaman}\n\nDaftar Keahlian:\n${keahlian}`;
-        taskId = await analyzeCV(token, null, manualData);
+        task_Id = await analyzeCV(token, null, manualData);
       }
 
-      if (!taskId) {
+      if (!task_Id) {
         throw new Error('Server tidak mengembalikan task_id. Silakan coba lagi.');
       }
 
       // Navigasi ke halaman hasil dengan membawa taskId untuk polling
+      // Menggunakan query param ?mode=authenticated&taskId= untuk kejelasan routing
       // TIDAK menyimpan ke sessionStorage karena ini alur user terautentikasi (FLOW C)
-      navigate('/analisis-result', { state: { taskId } });
+      navigate(`/analisis-result?mode=authenticated&taskId=${task_Id}`);
 
     } catch (err) {
       setError(err.message || 'Gagal memproses analisis profil Anda. Silakan coba lagi.');
@@ -306,62 +326,151 @@ export default function NewAnalysis() {
         {/* KOLOM KANAN (Riwayat & Widget Tambahan) */}
         <div className="lg:w-1/3 space-y-6 text-left shrink-0">
 
-          {/* DAFTAR RIWAYAT PINDAIAN USER */}
-          <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/60 shadow-sm">
-            <h3 className="font-extrabold text-slate-900 mb-1 text-sm uppercase tracking-wider flex items-center gap-2"><FiTarget size={16} className="text-indigo-500"/> Riwayat Analisis</h3>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-5">Klik untuk melihat rincian laporan</p>
+          {/* DAFTAR RIWAYAT ANALISIS - INTERAKTIF */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden"
+          >
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center text-white">
+                  <FiActivity size={18} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">Riwayat Analisis</h3>
+                  <p className="text-xs text-slate-400">Terakhir dianalisis</p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/riwayat')}
+                className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                Lihat Semua
+                <FiChevronRight size={14} />
+              </button>
+            </div>
 
-            <div className="space-y-4">
+            <div className="p-4">
               {loadingHistory ? (
-                <div className="animate-pulse flex flex-col gap-3.5">
-                  {[1, 2].map((i) => (
-                    <div key={i} className="h-14 bg-slate-50 border border-slate-100 rounded-2xl"></div>
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-16 bg-slate-50 rounded-xl animate-pulse" />
                   ))}
                 </div>
-              ) : history && history.length > 0 ? (
-                history.slice(0, 3).map((scan, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => navigate(`/analisis-result`, { state: { analysisId: scan.id } })}
-                    className="flex items-center justify-between group cursor-pointer p-3 rounded-2xl border border-slate-100 bg-white hover:border-indigo-200 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500/5 text-emerald-600 flex items-center justify-center border border-emerald-500/10 shrink-0">
-                        <FiTarget size={18}/>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1 truncate capitalize">{scan.job_title || scan.job_title_snapshot || 'Analisis CV'}</p>
-                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{new Date(scan.created_at).toLocaleDateString('id-ID')} · Skor: {Math.round(scan.match_score || scan.score || 0)}</p>
-                      </div>
-                    </div>
-                    <FiRefreshCw className="text-slate-300 group-hover:text-indigo-600 transition-colors shrink-0" size={15} />
+              ) : history.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <FiTarget size={24} className="text-slate-300" />
                   </div>
-                ))
+                  <p className="text-sm text-slate-500 font-medium mb-2">Belum ada analisis sebelumnya</p>
+                  <p className="text-xs text-slate-400">Upload CV untuk memulai analisis pertama</p>
+                </div>
               ) : (
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider py-4 text-center">Belum ada analisis sebelumnya</p>
+                <div className="space-y-3">
+                  {history.slice(0, 4).map((item, idx) => {
+                    const score = Math.round(item.match_score || 0);
+                    const status = getScoreStatus(score);
+                    return (
+                      <motion.div
+                        key={item.id || idx}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.05 }}
+                        onClick={() => navigate(`/riwayat/${item.id}`)}
+                        className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors border border-transparent hover:border-slate-100"
+                      >
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${status.bg} ${status.text} border ${status.border}`}>
+                          <FiTarget size={18} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm text-slate-900 line-clamp-1">
+                            {item.job_title_snapshot || 'Analisis CV'}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs text-slate-400">{formatDate(item.analyzed_at)}</span>
+                            <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
+                            <span className="text-xs text-slate-400">{item.company_snapshot?.length || 0} perusahaan</span>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className={`text-lg font-black ${status.color === 'emerald' ? 'text-emerald-600' : status.color === 'amber' ? 'text-amber-600' : 'text-rose-600'}`}>
+                            {score}
+                          </div>
+                          <p className="text-[10px] text-slate-400">poin</p>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
               )}
             </div>
-          </div>
+          </motion.div>
 
           {/* REAL-TIME SCAN METRICS */}
-          <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 p-6 rounded-3xl border border-slate-800 shadow-xl text-white relative overflow-hidden">
-             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-             <h3 className="font-bold text-sm mb-4 flex items-center gap-2 uppercase tracking-wider relative z-10"><BsStars className="text-amber-300"/> Real-time Scan AI</h3>
-             <ul className="space-y-3 text-xs text-slate-400 relative z-10 font-semibold">
-               <li className="flex items-center gap-3"><div className="bg-white/5 p-2 rounded-xl text-blue-400 border border-white/5"><FiZap size={14}/></div> Skor kecocokan mendalam (0-100)</li>
-               <li className="flex items-center gap-3"><div className="bg-white/5 p-2 rounded-xl text-emerald-400 border border-white/5"><FiCheckCircle size={14}/></div> Analisis Skill Match & Gap</li>
-               <li className="flex items-center gap-3"><div className="bg-white/5 p-2 rounded-xl text-purple-400 border border-white/5"><FiFileText size={14}/></div> Saran perbaikan kalimat AI</li>
-               <li className="flex items-center gap-3"><div className="bg-white/5 p-2 rounded-xl text-amber-400 border border-white/5"><FiBriefcase size={14}/></div> Top-20 rekomendasi lowongan</li>
-             </ul>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 p-6 rounded-2xl border border-slate-700 text-white relative overflow-hidden"
+          >
+             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
+             <div className="relative z-10">
+               <div className="flex items-center gap-2 mb-4">
+                 <BsStars className="text-amber-400" />
+                 <h3 className="font-bold text-sm">Yang Anda Dapatkan</h3>
+               </div>
+               <div className="space-y-3">
+                 <div className="flex items-center gap-3">
+                   <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-blue-400 shrink-0">
+                     <FiZap size={16} />
+                   </div>
+                   <p className="text-xs text-slate-300">Skor kecocokan 0-100</p>
+                 </div>
+                 <div className="flex items-center gap-3">
+                   <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-emerald-400 shrink-0">
+                     <FiCheckCircle size={16} />
+                   </div>
+                   <p className="text-xs text-slate-300">Analisis Skill Match & Gap</p>
+                 </div>
+                 <div className="flex items-center gap-3">
+                   <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-purple-400 shrink-0">
+                     <FiFileText size={16} />
+                   </div>
+                   <p className="text-xs text-slate-300">Saran Perbaikan AI</p>
+                 </div>
+                 <div className="flex items-center gap-3">
+                   <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-amber-400 shrink-0">
+                     <FiBriefcase size={16} />
+                   </div>
+                   <p className="text-xs text-slate-300">Top 20 Rekomendasi Kerja</p>
+                 </div>
+               </div>
+             </div>
+          </motion.div>
 
-          <div className="bg-white/85 backdrop-blur-md p-6 rounded-3xl border border-slate-200/60 shadow-sm">
-            <h3 className="font-bold text-slate-950 text-sm mb-4 flex items-center gap-2"><BsLightbulbFill className="text-amber-400 shrink-0"/> Tips Kelulusan ATS</h3>
-            <ul className="space-y-3 text-xs text-slate-500 font-medium">
-              <li className="flex items-start gap-2"><FiCheckCircle className="text-emerald-500 shrink-0 mt-0.5"/> <span>Gunakan format PDF satu kolom agar parser teks backend AI kami bekerja optimal.</span></li>
-              <li className="flex items-start gap-2"><FiShield className="text-blue-500 shrink-0 mt-0.5"/> <span>Sertakan kata kunci keahlian yang relevan dengan posisi yang Anda incar.</span></li>
-            </ul>
-          </div>
+          {/* TIPS ATS */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="bg-white rounded-2xl border border-slate-200/60 p-5 shadow-sm"
+          >
+            <h3 className="font-bold text-slate-900 text-sm mb-3 flex items-center gap-2">
+              <BsLightbulbFill className="text-amber-500" /> Tips Lolos ATS
+            </h3>
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <FiCheckCircle className="text-emerald-500 shrink-0 mt-0.5" size={14} />
+                <p className="text-xs text-slate-600 leading-relaxed">Gunakan format PDF satu kolom agar parser teks backend AI kami bekerja optimal.</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <FiShield className="text-blue-500 shrink-0 mt-0.5" size={14} />
+                <p className="text-xs text-slate-600 leading-relaxed">Sertakan kata kunci keahlian yang relevan dengan posisi yang Anda incar.</p>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </div>
     </div>

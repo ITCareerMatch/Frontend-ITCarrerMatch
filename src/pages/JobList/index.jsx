@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FiSearch, FiMapPin, FiMenu, FiX, FiBriefcase, FiFilter,
-  FiDollarSign, FiCheckCircle, FiFileText, FiXCircle, FiClock, FiArrowRight, FiInfo
+  FiSearch, FiMapPin, FiBriefcase, FiFilter,
+  FiDollarSign, FiFileText, FiXCircle, FiClock, FiArrowRight, FiMenu, FiInfo
 } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
 import { fetchAllJobs } from '../../services/api';
+import Navbar from '../../components/layout/Navbar';
 
 // Animasi Konfigurasi Reusable
 const fadeInUp = {
@@ -27,8 +28,6 @@ const staggerContainer = {
 
 export default function JobList() {
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
   const isLoggedIn = !!localStorage.getItem('access_token');
 
   // State untuk efek mengetik "Tanpa Batasan"
@@ -63,19 +62,6 @@ export default function JobList() {
   // State lokal khusus untuk input teks yang butuh debounce
   const [searchInput, setSearchInput] = useState('');
   const [locationInput, setLocationInput] = useState('');
-
-  // --- Deteksi Scroll untuk Navbar ---
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 15) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // --- Efek Mengetik "Tanpa Batasan" (Typewriter loop) ---
   useEffect(() => {
@@ -218,92 +204,8 @@ export default function JobList() {
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-[0.22] -z-10 pointer-events-none" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[550px] bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-100/20 via-transparent to-transparent -z-10 pointer-events-none" />
 
-      {/* --- FIXED NAVBAR --- */}
-      <motion.header 
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className={`flex justify-between items-center h-20 px-6 md:px-12 lg:px-16 fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-          isScrolled 
-            ? 'bg-white/85 backdrop-blur-md border-b border-slate-200/60 shadow-md shadow-slate-100/30' 
-            : 'bg-white/40 backdrop-blur-sm border-b border-transparent'
-        }`}
-      >
-        <div className="flex items-center gap-3 font-bold text-xl text-slate-900 cursor-pointer group" onClick={() => navigate('/')}>
-          <div className="relative">
-            <div className="absolute -inset-1 rounded-2xl opacity-20 blur-md group-hover:opacity-40 transition-opacity duration-300"></div>
-            <img src="/images/logo-itcareermatch.png" alt="ITCareerMatch Logo" className="w-11 h-11 object-contain relative rounded-2xl transition-transform duration-500 group-hover:rotate-6" />
-          </div>
-          <span className="bg-gradient-to-r from-slate-950 to-slate-800 bg-clip-text text-transparent font-extrabold tracking-tight">
-            ITCareerMatch
-          </span>
-        </div>
-        
-        {/* Menu Desktop */}
-        <nav className="hidden md:flex gap-8 text-sm font-semibold text-slate-600">
-          <a onClick={() => navigate('/')} className="hover:text-blue-600 transition-colors cursor-pointer tracking-tight">Beranda</a>
-          <a onClick={() => navigate('/lowongan')} className="text-blue-600 font-extrabold transition-colors cursor-pointer tracking-tight">Daftar Lowongan</a>
-          <a onClick={() => navigate('/tentang-kami')} className="hover:text-blue-600 transition-colors cursor-pointer tracking-tight">Tentang Kami</a>
-        </nav>
-        
-        {/* Tombol Mobile Toggle */}
-        <button
-          type="button"
-          onClick={() => setMobileMenuOpen((prev) => !prev)}
-          className="md:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors"
-        >
-          {mobileMenuOpen ? <FiX size={22} /> : <FiMenu size={22} />}
-        </button>
-        
-        {/* Aksi Desktop */}
-        <div className="hidden md:flex items-center gap-4">
-          {isLoggedIn ? (
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="bg-white text-slate-700 px-5 py-2.5 rounded-2xl text-sm font-bold hover:bg-slate-50 border border-slate-200 shadow-sm transition-all cursor-pointer hover:border-slate-300 active:scale-95"
-            >
-              Ke Dashboard
-            </button>
-          ) : (
-            <button onClick={() => navigate('/login')} className="hover:text-blue-600 text-sm font-bold transition-colors cursor-pointer mr-2">
-              Masuk
-            </button>
-          )}
-          <button 
-            onClick={() => navigate('/cek-skor')}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-2xl text-sm font-bold hover:opacity-95 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/25 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2"
-          >
-            <BsStars /> Cek Skor CV
-          </button>
-        </div>
-      </motion.header>
-
-      {/* --- MOBILE MENU --- */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="fixed md:hidden inset-x-0 top-20 z-40 bg-white border-b border-slate-200/60 px-8 py-6 shadow-xl max-h-[calc(100vh-5rem)] overflow-y-auto"
-          > 
-            <div className="flex flex-col gap-4 text-sm font-bold text-slate-700 items-start bg-white">
-              <a onClick={() => { setMobileMenuOpen(false); navigate('/'); }} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-slate-50 pb-3">Beranda</a>
-              <a onClick={() => { setMobileMenuOpen(false); navigate('/lowongan'); }} className="block text-blue-600 transition-colors cursor-pointer w-full border-b border-slate-50 pb-3">Daftar Lowongan</a>
-              <a onClick={() => { setMobileMenuOpen(false); navigate('/tentang-kami'); }} className="block hover:text-blue-600 transition-colors cursor-pointer w-full border-b border-slate-50 pb-3">Tentang Kami</a>
-              <div className="flex flex-col gap-3 pt-3 w-full">
-                {isLoggedIn ? (
-                  <button onClick={() => { setMobileMenuOpen(false); navigate('/dashboard'); }} className="w-full bg-slate-50 text-slate-700 px-4 py-3 rounded-xl border border-slate-200 transition-colors font-bold">Ke Dashboard</button>
-                ) : (
-                  <button onClick={() => { setMobileMenuOpen(false); navigate('/login'); }} className="w-full text-center text-slate-700 px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors border border-slate-200 font-bold">Masuk</button>
-                )}
-                <button onClick={() => { setMobileMenuOpen(false); navigate('/cek-skor'); }} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-xl hover:bg-blue-700 transition-all flex justify-center items-center gap-2 font-bold"><BsStars /> Cek Skor CV</button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* NAVBAR - Using reusable component */}
+      <Navbar variant="landing" activeItem="/lowongan" />
 
       {/* --- HERO & SEARCH SECTION --- */}
       <section className="pt-32 pb-12 px-6 md:px-12 lg:px-16 border-b border-slate-100">

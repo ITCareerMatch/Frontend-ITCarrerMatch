@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FiUploadCloud, FiEdit2, FiFileText, FiCheckCircle, 
+  FiUploadCloud, FiEdit2, FiFileText, FiCheckCircle,
   FiArrowLeft, FiZap, FiTarget, FiRefreshCw, FiShield, FiBriefcase, FiX
 } from 'react-icons/fi';
 import { BsStars, BsLightbulbFill } from 'react-icons/bs';
 import { uploadCV } from '../../services/api';
+import CVStorage from '../../services/cvStorage';
 
 // Animasi Konfigurasi Reusable
 // eslint-disable-next-line no-unused-vars
@@ -86,14 +87,14 @@ export default function PreLoginFlow() {
         throw new Error("Respons analisis kosong atau tidak valid dari server.");
       }
 
-      // Simpan preview & temp_token ke sessionStorage (Sesi Guest) secara utuh
-      sessionStorage.setItem('guest_cv_result', JSON.stringify({
-        ...previewData,
-        temp_token: tempToken
-      }));
-      
+      // Simpan preview & temp_token ke CVStorage service
+      CVStorage.saveGuestPreview({
+        temp_token: tempToken,
+        preview: previewData
+      });
+
       // Lanjut ke halaman hasil analisis
-      navigate('/analisis-result'); 
+      navigate('/analisis-result?mode=guest'); 
 
     } catch (err) {
       setError(err.message || 'Gagal memproses profil Anda. Silakan coba lagi.');

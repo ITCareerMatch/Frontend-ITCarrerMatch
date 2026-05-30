@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, useNavigate, useLocation, NavLink } from 'react-router-dom';
-import { 
-  FiHome, FiFileText, FiBriefcase, 
+import {
+  FiHome, FiFileText, FiBriefcase,
   FiSettings, FiLogOut, FiMenu, FiX, FiBell,
-  FiPlusCircle, FiMail
+  FiPlusCircle, FiMail, FiClock
 } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
 import { supabase } from '../lib/supabase';
@@ -30,6 +30,7 @@ export default function DashLayout() {
     if (location.pathname.includes('/dashboard')) return 'Dashboard';
     if (location.pathname.includes('/editor')) return 'CV Editor';
     if (location.pathname.includes('/analisis-baru')) return 'Analisis Baru';
+    if (location.pathname.includes('/riwayat')) return 'Riwayat Analisis';
     if (location.pathname.includes('/daftar-lowongan')) return 'Daftar Lowongan';
     if (location.pathname.includes('/pengaturan')) return 'Pengaturan';
     return 'Dashboard';
@@ -77,6 +78,7 @@ export default function DashLayout() {
     { path: '/dashboard', label: 'Dashboard', icon: <FiHome size={18} /> },
     { path: '/editor', label: 'CV Editor', icon: <FiFileText size={18} /> },
     { path: '/analisis-baru', label: 'Analisis Baru', icon: <FiPlusCircle size={18} /> },
+    { path: '/riwayat', label: 'Riwayat Analisis', icon: <FiClock size={18} /> },
     { path: '/daftar-lowongan', label: 'Daftar Lowongan', icon: <FiBriefcase size={18} /> },
   ];
 
