@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  fetchJobRecommendations,
   claimCVSession,
   checkCVStatus
 } from '../../services/api';
@@ -20,11 +19,11 @@ import AuthenticatedMode from './components/AuthenticatedMode';
  *
  * FLOW A: Guest Preview (Tanpa Login)
  *   /cek-skor → POST /cv/preview → Simpan temp_token → navigate /analisis-result?mode=guest
- *   → GuestMode (locked) → User login/register
+ *   → GuestMode (locked UI dengan blur) → User login/register
  *
  * FLOW B: Guest → Login → Claim Session
  *   GuestMode → Login → POST /cv/claim → task_id → Poll /cv/status/{task_id}
- *   → AuthenticatedMode (unlocked)
+ *   → AuthenticatedMode (unlocked dengan data asli)
  *
  * FLOW C: User Login → Analisis Baru
  *   /analisis-baru → POST /cv/analyze → task_id → navigate /analisis-result?mode=authenticated&taskId={task_id}
@@ -36,8 +35,8 @@ import AuthenticatedMode from './components/AuthenticatedMode';
 // ===============================
 // loading     - Initial loading state
 // polling     - Polling task status (authenticated)
-// auth_claiming - Claiming session after login
-// guest_locked - Guest sees preview with lock
+// claiming    - Claiming session after login
+// guest_locked - Guest sees preview with locked UI
 // result      - Showing complete result (authenticated)
 // failed      - Error occurred
 
@@ -54,9 +53,7 @@ export default function AnalysisResult() {
 
   // UI States
   const [viewState, setViewState] = useState('loading');
-  const [data, setData] = useState(null);
-  const [previewData, setPreviewData] = useState(null);
-  const [recommendedJobs, setRecommendedJobs] = useState([]);
+  const [taskResult, setTaskResult] = useState(null); // Data dari /cv/status/{task_id}
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState(null);
 
@@ -75,6 +72,7 @@ export default function AnalysisResult() {
     const MAX = 30;
 
     setViewState('polling');
+    setCurrentStep(0);
 
     const poll = async () => {
       if (attempts >= MAX) {
@@ -84,39 +82,35 @@ export default function AnalysisResult() {
       }
 
       try {
+        console.log(`[pollTask] Attempt ${attempts + 1}: Checking status for taskId:`, taskId);
         const result = await checkCVStatus(token, taskId);
+        console.log(`[pollTask] Response:`, result);
+
         const status = result?.status;
         setCurrentStep(Math.min(attempts, 4));
 
         if (status === 'completed') {
-          const cvId = result?.result?.cv_id;
-          const analysisData = result?.result || {};
-          setData(analysisData);
-
-          // Fetch job recommendations based on cv_id
-          if (cvId) {
-            try {
-              const recs = await fetchJobRecommendations(token, cvId);
-              setRecommendedJobs(Array.isArray(recs) ? recs : []);
-            } catch (recErr) {
-              console.warn('Failed to fetch recommendations:', recErr);
-            }
-          }
-
+          console.log(`[pollTask] Analysis completed! Result:`, result?.result);
+          // Simpan result dari polling
+          setTaskResult(result?.result || null);
           setViewState('result');
+          // Clear storage after getting result
+          CVStorage.clear();
           return;
         }
 
         if (status === 'failed') {
+          console.log(`[pollTask] Analysis failed:`, result?.result);
           setViewState('failed');
-          setError('Analisis CV gagal.');
+          setError(result?.result?.message || 'Analisis CV gagal.');
           return;
         }
 
+        console.log(`[pollTask] Still processing... status:`, status);
         attempts++;
         pollingRef.current = setTimeout(poll, 3000);
       } catch (err) {
-        console.warn(`Poll ${attempts}:`, err.message);
+        console.error(`[pollTask] Error on attempt ${attempts + 1}:`, err.message);
         attempts++;
         pollingRef.current = setTimeout(poll, 3000);
       }
@@ -126,52 +120,37 @@ export default function AnalysisResult() {
   }, [token]);
 
   // ===============================
-  // CLAIM & POLL FUNCTION
+  // CLAIM & POLL FUNCTION (FLOW B)
   // ===============================
-  const claimAndPoll = useCallback(async (tempToken, preview) => {
-    setViewState('auth_claiming');
+  const claimAndPoll = useCallback(async (tempToken) => {
+    setViewState('claiming');
     setCurrentStep(0);
 
     try {
+      console.log(`[claimAndPoll] Claiming session with tempToken:`, tempToken);
+      // POST /cv/claim dengan temp_token
+      // claimCVSession sudah return task_id langsung
       const taskId = await claimCVSession(token, tempToken);
+      console.log(`[claimAndPoll] Got taskId:`, taskId);
 
       if (taskId) {
-        // Mark as claimed
-        CVStorage.markAsClaimed();
-        // Poll for task status
+        // Clear storage sebelum navigate
+        CVStorage.clear();
+
+        // Navigate ke URL dengan taskId
+        navigate(`/analisis-result?mode=authenticated&taskId=${taskId}`, { replace: true });
+
+        // Poll status dengan task_id yang didapat dari claim
         await pollTask(taskId);
       } else {
-        // No taskId, show preview as result
-        setData(preview);
-        setViewState('result');
+        throw new Error('Server tidak mengembalikan task_id');
       }
     } catch (err) {
-      console.error('Claim session error:', err);
-      // Fallback: show preview
-      setData(preview);
-      setViewState('result');
+      console.error('[claimAndPoll] Error:', err.message);
+      setError(err.message);
+      setViewState('failed');
     }
-  }, [token, pollTask]);
-
-  // ===============================
-  // SIMULATE GUEST PREVIEW
-  // ===============================
-  const showGuestPreview = useCallback((preview) => {
-    setViewState('polling');
-    setCurrentStep(0);
-
-    let step = 0;
-    const interval = setInterval(() => {
-      step++;
-      setCurrentStep(Math.min(step, 4));
-
-      if (step >= 4) {
-        clearInterval(interval);
-        setPreviewData(preview);
-        setViewState('guest_locked');
-      }
-    }, 1500);
-  }, []);
+  }, [token, pollTask, navigate]);
 
   // ===============================
   // MAIN LOADING EFFECT
@@ -180,57 +159,38 @@ export default function AnalysisResult() {
     const loadData = async () => {
       setViewState('loading');
 
-      // Check for authenticated task via query param
+      // Parse URL params
       const params = new URLSearchParams(location.search);
       const mode = params.get('mode');
       const taskIdParam = params.get('taskId');
+      const tempTokenParam = params.get('tempToken');
 
       try {
-        // FLOW C: Authenticated NewAnalysis with query param
+        // FLOW C: Authenticated NewAnalysis - langsung polling dengan taskId dari URL
         if (mode === 'authenticated' && taskIdParam && isLoggedIn) {
           await pollTask(taskIdParam);
           return;
         }
 
-        // Check CVStorage for guest session
-        const storageData = CVStorage.getGuestPreview();
-
-        if (storageData && isLoggedIn) {
-          // FLOW B: Guest session claimed after login
-          if (storageData.temp_token) {
-            await claimAndPoll(storageData.temp_token, storageData.preview);
-          } else {
-            // Already claimed, show preview
-            setData(storageData.preview);
-            setViewState('result');
-          }
+        // FLOW B: Ada tempToken di URL dan user sudah login → langsung claim
+        if (tempTokenParam && isLoggedIn) {
+          // claimAndPoll akan navigate ke URL dengan taskId
+          await claimAndPoll(tempTokenParam);
           return;
         }
 
-        if (storageData && !isLoggedIn) {
-          // FLOW A: Guest sees preview
-          showGuestPreview(storageData.preview);
+        // Cek apakah ada guest session yang sudah di-claim di CVStorage
+        const guestSession = CVStorage.getGuestSession();
+
+        // FLOW B (legacy): Ada guest session di storage dan user sudah login → claim it
+        if (isLoggedIn && guestSession?.temp_token) {
+          await claimAndPoll(guestSession.temp_token);
           return;
         }
 
-        // Check legacy sessionStorage for backward compatibility
-        const legacySession = sessionStorage.getItem('guest_cv_result');
-        if (legacySession) {
-          const parsed = JSON.parse(legacySession);
-
-          if (isLoggedIn) {
-            const tempToken = parsed?.temp_token;
-            const previewD = parsed?.preview || parsed?.data || parsed;
-            if (tempToken) {
-              await claimAndPoll(tempToken, previewD);
-            } else {
-              setData(previewD);
-              setViewState('result');
-            }
-          } else {
-            const previewD = parsed?.preview || parsed?.data || parsed;
-            showGuestPreview(previewD);
-          }
+        // FLOW A: Guest sees locked preview (ada tempToken di URL atau di storage)
+        if (tempTokenParam || guestSession?.temp_token) {
+          setViewState('guest_locked');
           return;
         }
 
@@ -249,18 +209,24 @@ export default function AnalysisResult() {
     };
 
     loadData();
-  }, [token, location.search, isLoggedIn, navigate, pollTask, claimAndPoll, showGuestPreview]);
+  }, [token, location.search, isLoggedIn, navigate, pollTask, claimAndPoll]);
 
   // ===============================
   // HANDLERS
   // ===============================
   const handleLoginClick = () => {
-    navigate('/login?redirect=/analisis-result');
+    // Navigate ke login dengan tempToken di URL jika ada
+    const params = new URLSearchParams(location.search);
+    const tempToken = params.get('tempToken');
+    if (tempToken) {
+      navigate(`/login?redirect=/analisis-result&tempToken=${tempToken}`);
+    } else {
+      navigate('/login?redirect=/analisis-result');
+    }
   };
 
   const handleRetry = () => {
     CVStorage.clear();
-    sessionStorage.removeItem('guest_cv_result');
     if (isLoggedIn) {
       navigate('/analisis-baru');
     } else {
@@ -269,6 +235,7 @@ export default function AnalysisResult() {
   };
 
   const handleBack = () => {
+    CVStorage.clear();
     if (isLoggedIn) {
       navigate('/dashboard');
     } else {
@@ -288,8 +255,8 @@ export default function AnalysisResult() {
     );
   }
 
-  if (viewState === 'polling' || viewState === 'auth_claiming') {
-    return <PollingScreen currentStep={currentStep} isAuthenticated={isLoggedIn} isClaiming={viewState === 'auth_claiming'} />;
+  if (viewState === 'polling' || viewState === 'claiming') {
+    return <PollingScreen currentStep={currentStep} isAuthenticated={isLoggedIn} isClaiming={viewState === 'claiming'} />;
   }
 
   if (viewState === 'failed') {
@@ -299,20 +266,18 @@ export default function AnalysisResult() {
   if (viewState === 'guest_locked') {
     return (
       <GuestMode
-        previewData={previewData}
         onLoginClick={handleLoginClick}
-        onRegisterClick={() => navigate('/register?redirect=/analisis-result')}
+        onBack={handleBack}
       />
     );
   }
 
   // ===============================
-  // RESULT LAYOUT (Authenticated)
+  // RESULT LAYOUT (Authenticated - Data dari polling)
   // ===============================
   return (
     <AuthenticatedMode
-      data={data}
-      recommendedJobs={recommendedJobs}
+      taskResult={taskResult} // Kirim result dari polling, bukan dari storage
       onBackClick={handleBack}
     />
   );

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   FiClock, FiTarget, FiFileText, FiBriefcase,
-  FiChevronLeft, FiChevronRight, FiEye, FiTrash2
+  FiChevronLeft, FiChevronRight, FiEye, FiTrash2, FiFilter
 } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
 import { fetchAnalysisHistory, fetchCVArchives, deleteCVArchive } from '../../services/api';
@@ -53,6 +53,7 @@ export default function AnalysisHistory() {
   // State untuk data
   const [history, setHistory] = useState([]);
   const [cvArchives, setCvArchives] = useState([]);
+  const [selectedCvId, setSelectedCvId] = useState(null); // Filter by specific CV
   const [loading, setLoading] = useState(true);
   // eslint-disable-next-line no-unused-vars
   const [error, setError] = useState(null);
@@ -74,7 +75,13 @@ export default function AnalysisHistory() {
       setLoading(true);
       try {
         // Fetch history - API menggunakan 1-based indexing untuk page
-        const historyResult = await fetchAnalysisHistory(token, currentPage, pageSizeRef.current);
+        // Filter by selectedCvId jika user memilih CV tertentu
+        const historyResult = await fetchAnalysisHistory(
+          token,
+          currentPage,
+          pageSizeRef.current,
+          selectedCvId
+        );
         // Response: { success, data: [...], meta: { page, limit, total } }
         const historyData = historyResult?.data || [];
         setHistory(Array.isArray(historyData) ? historyData : []);
@@ -104,7 +111,7 @@ export default function AnalysisHistory() {
     };
 
     loadData();
-  }, [token, currentPage, navigate]);
+  }, [token, currentPage, selectedCvId, navigate]);
 
   // Handle delete CV archive
   const handleDeleteArchive = async (archiveId) => {
@@ -177,27 +184,51 @@ export default function AnalysisHistory() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6">
-        <button
-          onClick={() => setActiveTab('history')}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-            activeTab === 'history'
-              ? 'bg-slate-900 text-white shadow-md'
-              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-          }`}
-        >
-          <FiTarget className="inline mr-2" />Riwayat Analisis ({totalItems})
-        </button>
-        <button
-          onClick={() => setActiveTab('archives')}
-          className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-            activeTab === 'archives'
-              ? 'bg-slate-900 text-white shadow-md'
-              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-          }`}
-        >
-          <FiFileText className="inline mr-2" />Arsip CV ({cvArchives.length})
-        </button>
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              activeTab === 'history'
+                ? 'bg-slate-900 text-white shadow-md'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <FiTarget className="inline mr-2" />Riwayat Analisis ({totalItems})
+          </button>
+          <button
+            onClick={() => setActiveTab('archives')}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              activeTab === 'archives'
+                ? 'bg-slate-900 text-white shadow-md'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            <FiFileText className="inline mr-2" />Arsip CV ({cvArchives.length})
+          </button>
+        </div>
+
+        {/* Filter by CV dropdown */}
+        {activeTab === 'history' && cvArchives.length > 0 && (
+          <div className="flex items-center gap-2">
+            <FiFilter className="text-slate-400" size={16} />
+            <select
+              value={selectedCvId || ''}
+              onChange={(e) => {
+                setSelectedCvId(e.target.value || null);
+                setCurrentPage(1); // Reset to first page when filter changes
+              }}
+              className="px-3 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Semua CV</option>
+              {cvArchives.map((archive) => (
+                <option key={archive.id} value={archive.id}>
+                  {archive.file_name || `CV ${archive.id.substring(0, 8)}...`} ({archive.cv_source})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Content */}

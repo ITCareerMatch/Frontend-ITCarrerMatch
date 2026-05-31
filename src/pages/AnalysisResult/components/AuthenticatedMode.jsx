@@ -5,11 +5,11 @@ import { motion, useAnimation, useInView } from 'framer-motion';
 import { useRef } from 'react';
 import {
   FiCheckCircle, FiXCircle, FiTrendingUp,
-  FiBriefcase, FiArrowLeft, FiCopy, FiTarget,
-  FiZap, FiStar, FiAward, FiBookmark
+  FiBriefcase, FiArrowLeft, FiTarget,
+  FiZap, FiStar, FiAward, FiBookmark, FiUsers, FiCalendar
 } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
-import Swal from 'sweetalert2';
+import { fetchJobRecommendations } from '../../../services/api';
 
 /**
  * Animated Circular Score Ring Component
@@ -298,27 +298,46 @@ function JobCard({ job, index }) {
 /**
  * AuthenticatedMode Component (Unlocked)
  * Displays full analysis results for authenticated users
- * Includes job recommendations based on cv_id
+ * Data comes from polling /cv/status/{task_id}
+ * Then fetches job recommendations based on cv_id
  */
-export default function AuthenticatedMode({ data, recommendedJobs, onBackClick }) {
-  // Extract data from API response
-  const score = data?.match_score ?? data?.score ?? 0;
-  const extractedSkills = data?.extracted_skills ?? data?.skill_match ?? [];
-  const skillGap = data?.skill_gap ?? [];
-  const aiInsight = data?.ai_insight ?? data?.ai_insights ?? '';
-  const summary = data?.summary ?? data?.ai_summary ?? 'Analisis selesai.';
+export default function AuthenticatedMode({ taskResult, onBackClick }) {
+  const token = localStorage.getItem('access_token');
+  const [recommendedJobs, setRecommendedJobs] = useState([]);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
 
-  // Copy AI Insight to clipboard
-  const copyInsight = (text) => {
-    navigator.clipboard.writeText(Array.isArray(text) ? text.join('\n') : text);
-    Swal.fire({
-      icon: 'success',
-      title: 'Disalin!',
-      text: 'Insight berhasil disalin ke clipboard',
-      timer: 1500,
-      showConfirmButton: false,
-    });
-  };
+  // Extract data from taskResult polling response
+  // Response format: { message, userId, cvId, user_age, jobs_filtered, skills_updated, recommendations_saved }
+  const message = taskResult?.message || 'Analisis berhasil.';
+  const cvId = taskResult?.cv_id || null;
+  const userAge = taskResult?.user_age || null;
+  const jobsFiltered = taskResult?.jobs_filtered || 0;
+  const skillsUpdated = taskResult?.skills_updated || 0;
+  const recommendationsSaved = taskResult?.recommendations_saved || 0;
+
+  // Calculate a synthetic score based on recommendations saved
+  // Since we don't have direct score, we use recommendations as proxy
+  const score = recommendationsSaved > 0 ? Math.min(80 + (recommendationsSaved / 20) * 10, 95) : 65;
+
+  // Fetch job recommendations based on cv_id
+  useEffect(() => {
+    if (!cvId || !token) return;
+
+    const fetchRecommendations = async () => {
+      setLoadingRecommendations(true);
+      try {
+        const recs = await fetchJobRecommendations(token, cvId);
+        setRecommendedJobs(Array.isArray(recs) ? recs : []);
+      } catch (err) {
+        console.warn('Failed to fetch recommendations:', err);
+        setRecommendedJobs([]);
+      } finally {
+        setLoadingRecommendations(false);
+      }
+    };
+
+    fetchRecommendations();
+  }, [cvId, token]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 font-sans text-slate-800 pb-20">
@@ -380,196 +399,87 @@ export default function AuthenticatedMode({ data, recommendedJobs, onBackClick }
           <motion.h1
             className="text-3xl md:text-4xl font-extrabold text-slate-900 mb-3 tracking-tight"
           >
-            Evaluasi Kualifikasi CV Anda
+            Hasil Analisis CV Anda
           </motion.h1>
 
           <motion.p
             className="text-slate-500 mb-12 max-w-md mx-auto leading-relaxed"
           >
-            Berikut hasil analisis mendalam CV Anda oleh AI. Lihat rekomendasi dan insight untuk meningkatkan peluang kerja.
+            CV Anda telah dianalisis dan hasil rekomendasi sudah tersedia.
           </motion.p>
 
-          {/* Animated Score Ring */}
+          {/* Animated Score Ring - Using recommendations count as score */}
           <motion.div
             className="inline-block"
           >
             <AnimatedScoreRing score={score} size={260} strokeWidth={18} />
           </motion.div>
 
-          {/* Summary */}
+          {/* Message Summary */}
           <motion.p
             className="mt-8 text-slate-600 max-w-2xl mx-auto leading-relaxed bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-slate-200/50"
           >
-            {summary}
+            {message}
           </motion.p>
         </AnimatedSection>
 
         {/* Stats Cards */}
-        <AnimatedSection delay={0.3} className="grid grid-cols-2 gap-4 mb-12">
+        <AnimatedSection delay={0.3} className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12">
           <motion.div
             whileHover={{ scale: 1.02, y: -4 }}
-            className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-6 rounded-2xl border border-emerald-200/40 text-center relative overflow-hidden"
+            className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-5 rounded-2xl border border-emerald-200/40 text-center relative overflow-hidden"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-200/20 rounded-full blur-3xl" />
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.5, type: 'spring' }}
-              className="w-14 h-14 bg-emerald-500 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/30 relative z-10"
-            >
-              <FiCheckCircle size={28} />
-            </motion.div>
-            <div className="text-4xl font-black text-emerald-700 mb-1 relative z-10">
-              {extractedSkills.length}
+            <div className="w-12 h-12 bg-emerald-500 text-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-500/20">
+              <FiCheckCircle size={24} />
             </div>
-            <div className="text-xs text-emerald-600 font-bold uppercase tracking-wider relative z-10">
-              Skill Cocok
-            </div>
+            <div className="text-3xl font-black text-emerald-700 mb-1">{skillsUpdated}</div>
+            <div className="text-xs text-emerald-600 font-bold uppercase tracking-wider">Skill Updated</div>
           </motion.div>
 
           <motion.div
             whileHover={{ scale: 1.02, y: -4 }}
-            className="bg-gradient-to-br from-rose-50 to-rose-100/50 p-6 rounded-2xl border border-rose-200/40 text-center relative overflow-hidden"
+            className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-5 rounded-2xl border border-blue-200/40 text-center relative overflow-hidden"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-rose-200/20 rounded-full blur-3xl" />
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.6, type: 'spring' }}
-              className="w-14 h-14 bg-rose-500 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-rose-500/30 relative z-10"
-            >
-              <FiTarget size={28} />
-            </motion.div>
-            <div className="text-4xl font-black text-rose-700 mb-1 relative z-10">
-              {skillGap.length}
+            <div className="w-12 h-12 bg-blue-500 text-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-blue-500/20">
+              <FiUsers size={24} />
             </div>
-            <div className="text-xs text-rose-600 font-bold uppercase tracking-wider relative z-10">
-              Skill Gap
+            <div className="text-3xl font-black text-blue-700 mb-1">{jobsFiltered}</div>
+            <div className="text-xs text-blue-600 font-bold uppercase tracking-wider">Lowongan Difilter</div>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ scale: 1.02, y: -4 }}
+            className="bg-gradient-to-br from-amber-50 to-amber-100/50 p-5 rounded-2xl border border-amber-200/40 text-center relative overflow-hidden"
+          >
+            <div className="w-12 h-12 bg-amber-500 text-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-amber-500/20">
+              <FiStar size={24} />
             </div>
+            <div className="text-3xl font-black text-amber-700 mb-1">{recommendationsSaved}</div>
+            <div className="text-xs text-amber-600 font-bold uppercase tracking-wider">Rekomendasi</div>
+          </motion.div>
+
+          <motion.div
+            whileHover={{ scale: 1.02, y: -4 }}
+            className="bg-gradient-to-br from-purple-50 to-purple-100/50 p-5 rounded-2xl border border-purple-200/40 text-center relative overflow-hidden"
+          >
+            <div className="w-12 h-12 bg-purple-500 text-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-purple-500/20">
+              <FiCalendar size={24} />
+            </div>
+            <div className="text-3xl font-black text-purple-700 mb-1">{userAge || '-'}</div>
+            <div className="text-xs text-purple-600 font-bold uppercase tracking-wider">Usia</div>
           </motion.div>
         </AnimatedSection>
 
-        {/* Skills Section */}
-        <div className="space-y-6">
-          {/* Skill Match */}
-          <AnimatedSection delay={0.4}>
-            <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm">
-              <div className="flex items-center gap-3 mb-5">
-                <motion.div
-                  whileHover={{ rotate: 10, scale: 1.1 }}
-                  className="w-11 h-11 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center"
-                >
-                  <FiCheckCircle size={22} />
-                </motion.div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-lg">Skill Yang Sesuai</h3>
-                  <p className="text-xs text-slate-500">Keahlian yang cocok dengan lowongan target</p>
-                </div>
-                <span className="ml-auto px-3 py-1 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold">
-                  {extractedSkills.length} skill
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {extractedSkills.length > 0 ? extractedSkills.map((s, i) => (
-                  <SkillTag key={i} skill={s} type="match" delay={0.5 + i * 0.05} />
-                )) : (
-                  <span className="text-slate-400 text-sm">Tidak ada skill yang cocok</span>
-                )}
-              </div>
-            </div>
-          </AnimatedSection>
-
-          {/* Skill Gap */}
+        {/* Recommendations Section */}
+        {loadingRecommendations ? (
           <AnimatedSection delay={0.5}>
-            <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm">
-              <div className="flex items-center gap-3 mb-5">
-                <motion.div
-                  whileHover={{ rotate: -10, scale: 1.1 }}
-                  className="w-11 h-11 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center"
-                >
-                  <FiXCircle size={22} />
-                </motion.div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-lg">Skill Yang Perlu Dikembangkan</h3>
-                  <p className="text-xs text-slate-500">Konsentrasi untuk meningkatkan nilai CV Anda</p>
-                </div>
-                <span className="ml-auto px-3 py-1 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold">
-                  {skillGap.length} skill
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {skillGap.length > 0 ? skillGap.map((s, i) => (
-                  <SkillTag key={i} skill={s} type="gap" delay={0.6 + i * 0.05} />
-                )) : (
-                  <span className="text-slate-400 text-sm">Tidak ada skill gap signifikan</span>
-                )}
-              </div>
+            <div className="bg-white rounded-2xl border border-slate-200/60 p-8 text-center">
+              <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-slate-500 font-medium">Memuat rekomendasi...</p>
             </div>
           </AnimatedSection>
-
-          {/* AI Insight */}
-          {aiInsight && (
-            <AnimatedSection delay={0.6}>
-              <motion.div
-                className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 rounded-2xl p-8 text-white relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
-
-                <div className="flex items-center justify-between mb-6 relative z-10">
-                  <div className="flex items-center gap-3">
-                    <motion.div
-                      whileHover={{ rotate: 360 }}
-                      transition={{ duration: 1 }}
-                      className="w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/30"
-                    >
-                      <BsStars size={24} />
-                    </motion.div>
-                    <div>
-                      <h3 className="font-bold text-white text-lg">AI Insight</h3>
-                      <p className="text-xs text-slate-400">Rekomendasi personal dari analisis mendalam</p>
-                    </div>
-                  </div>
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => copyInsight(aiInsight)}
-                    className="p-2 bg-white/10 text-white/70 hover:text-white rounded-xl hover:bg-white/20 transition-colors"
-                    title="Salin insight"
-                  >
-                    <FiCopy size={18} />
-                  </motion.button>
-                </div>
-
-                <div className="text-slate-300 leading-relaxed relative z-10">
-                  {Array.isArray(aiInsight) ? (
-                    <ul className="space-y-3">
-                      {aiInsight.map((insight, i) => (
-                        <motion.li
-                          key={i}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.7 + i * 0.1 }}
-                          className="flex items-start gap-3"
-                        >
-                          <span className="w-6 h-6 bg-amber-500/20 text-amber-400 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
-                            {i + 1}
-                          </span>
-                          <span>{insight}</span>
-                        </motion.li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>{aiInsight}</p>
-                  )}
-                </div>
-              </motion.div>
-            </AnimatedSection>
-          )}
-        </div>
-
-        {/* Job Recommendations */}
-        {recommendedJobs.length > 0 && (
-          <AnimatedSection delay={0.8} className="mt-12">
+        ) : recommendedJobs.length > 0 ? (
+          <AnimatedSection delay={0.5}>
             <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
               <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -590,12 +500,12 @@ export default function AuthenticatedMode({ data, recommendedJobs, onBackClick }
               </div>
 
               <div className="p-6 grid sm:grid-cols-2 gap-4">
-                {recommendedJobs.slice(0, 4).map((job, i) => (
+                {recommendedJobs.slice(0, 6).map((job, i) => (
                   <JobCard key={job.job_id || i} job={job} index={i} />
                 ))}
               </div>
 
-              {recommendedJobs.length > 4 && (
+              {recommendedJobs.length > 6 && (
                 <div className="p-6 pt-0">
                   <Link
                     to="/lowongan"
@@ -608,11 +518,8 @@ export default function AuthenticatedMode({ data, recommendedJobs, onBackClick }
               )}
             </div>
           </AnimatedSection>
-        )}
-
-        {/* Empty state */}
-        {recommendedJobs.length === 0 && (
-          <AnimatedSection delay={0.8}>
+        ) : (
+          <AnimatedSection delay={0.5}>
             <div className="bg-white rounded-2xl border border-slate-200/60 p-12 text-center">
               <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FiBriefcase size={28} className="text-slate-400" />

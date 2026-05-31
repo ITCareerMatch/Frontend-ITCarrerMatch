@@ -79,22 +79,14 @@ export default function PreLoginFlow() {
         apiResult = await uploadCV(null, manualData);
       }
 
-      // 👈 PERBAIKAN: Pengaman ekstraksi preview & temp_token dari respons uploadCV
-      const previewData = apiResult?.preview || apiResult?.data || apiResult;
-      const tempToken = apiResult?.temp_token || apiResult?.data?.temp_token || apiResult?.tempToken;
-
-      if (!previewData) {
-        throw new Error("Respons analisis kosong atau tidak valid dari server.");
+      // 👈 Simpan temp_token ke CVStorage service
+      const tempToken = apiResult?.temp_token;
+      if (tempToken) {
+        CVStorage.saveGuestTempToken(tempToken);
       }
 
-      // Simpan preview & temp_token ke CVStorage service
-      CVStorage.saveGuestPreview({
-        temp_token: tempToken,
-        preview: previewData
-      });
-
-      // Lanjut ke halaman hasil analisis
-      navigate('/analisis-result?mode=guest'); 
+      // Lanjut ke halaman hasil analisis dengan tempToken di URL
+      navigate(`/analisis-result?mode=guest&tempToken=${tempToken}`); 
 
     } catch (err) {
       setError(err.message || 'Gagal memproses profil Anda. Silakan coba lagi.');

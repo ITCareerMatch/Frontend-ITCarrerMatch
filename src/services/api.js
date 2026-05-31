@@ -103,8 +103,23 @@ export async function analyzeCV(token, file, manualText = null) {
     body: formData,
   });
   const result = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(result?.message || `Gagal menganalisis CV (HTTP ${response.status})`);
-  if (!result || !result.success) throw new Error(result?.message || 'Respons analisis CV tidak berhasil');
+
+  // Debug: log response untuk troubleshooting
+  console.log('[analyzeCV] Response:', result);
+
+  if (!response.ok) {
+    throw new Error(result?.message || `Gagal menganalisis CV (HTTP ${response.status})`);
+  }
+
+  if (!result?.success) {
+    throw new Error(result?.message || 'Respons analisis CV tidak berhasil');
+  }
+
+  if (!result?.task_id) {
+    console.error('[analyzeCV] Missing task_id in response:', result);
+    throw new Error('Server tidak mengembalikan task_id. Pastikan analisis CV berhasil diproses.');
+  }
+
   return result.task_id;
 }
 
@@ -122,6 +137,10 @@ export async function claimCVSession(token, tempToken) {
     body: JSON.stringify({ temp_token: tempToken })
   });
   const result = await response.json().catch(() => null);
+
+  // Debug: log response untuk troubleshooting
+  console.log('[claimCVSession] Response:', result);
+
   if (!response.ok) {
     if (response.status === 410) {
       throw new Error('Sesi preview telah kadaluarsa. Silakan upload ulang CV Anda.');
@@ -129,6 +148,11 @@ export async function claimCVSession(token, tempToken) {
     throw new Error(result?.message || 'Gagal mengklaim sesi CV');
   }
   if (!result?.success) throw new Error(result?.message || 'Respons klaim tidak berhasil');
+
+  if (!result?.task_id) {
+    console.error('[claimCVSession] Missing task_id in response:', result);
+    throw new Error('Server tidak mengembalikan task_id. Silakan coba lagi atau hubungi support.');
+  }
 
   return result.task_id;
 }
@@ -284,12 +308,18 @@ export async function fetchJobDetail(id) {
 /**
  * GET /api/v1/analysis/history
  * Ambil riwayat analisis dengan pagination
+ * Optional: filter by cvId
  * Returns: { success, data: [...], meta: { page, limit, total } }
  */
-export async function fetchAnalysisHistory(token, page = 1, limit = 10) {
+export async function fetchAnalysisHistory(token, page = 1, limit = 10, cvId = null) {
   if (!token) throw new Error('Missing access token');
 
-  const response = await fetch(`${API_BASE_URL}/api/v1/analysis/history?page=${page}&limit=${limit}`, {
+  let url = `${API_BASE_URL}/api/v1/analysis/history?page=${page}&limit=${limit}`;
+  if (cvId) {
+    url += `&cvId=${cvId}`;
+  }
+
+  const response = await fetch(url, {
     method: 'GET',
     headers: buildHeaders(token),
   });
@@ -313,7 +343,7 @@ export async function fetchAnalysisHistory(token, page = 1, limit = 10) {
 /**
  * GET /api/v1/analysis/{id}
  * Ambil detail analisis
- * Returns: { success, data: { id, cv_id, match_score, extracted_skills, skill_match, skill_gap, ai_insight, summary } }
+ * Returns: { success, data: { id, cv_id, match_score, skill_match, skill_gap, ai_insight, ... } }
  */
 export async function fetchAnalysisDetail(token, analysisId) {
   if (!token) throw new Error('Missing access token');
@@ -326,5 +356,90 @@ export async function fetchAnalysisDetail(token, analysisId) {
   if (!response.ok) throw new Error(result?.message || `Gagal mengambil detail analisis (HTTP ${response.status})`);
   if (!result?.success) throw new Error(result?.message || 'Respons detail analisis tidak berhasil');
 
-  return result.data;
+  // Return data with fallback for missing fields
+  const data = result.data || {};
+
+  return {
+    id: data.id,
+    cv_id: data.cv_id || null, // Might not be in response from backend
+    user_id: data.user_id || null,
+    job_id: data.job_id || null,
+    job_title_snapshot: data.job_title_snapshot || '',
+    company_snapshot: data.company_snapshot || '',
+    match_score: data.match_score || 0,
+    analyzed_at: data.analyzed_at || null,
+    skill_match: data.skill_match || [],
+    skill_gap: data.skill_gap || [],
+    ai_insight: data.ai_insight || '',
+    // skill_details from analysis_details table if available
+    skill_details: data.skill_details || [],
+  };
+}
+
+// ============================================================
+// CHATBOT
+// ============================================================
+
+/**
+ * POST /api/v1/chatbot/chat
+ * Chat with AI chatbot for career guidance
+ * Optional: attach user's CV for personalized responses (if token provided)
+ */
+export async function chatWithBot(token, message, history = []) {
+  const response = await fetch(`${API_BASE_URL}/api/v1/chatbot/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ message, history }),
+  });
+
+  const result = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(result?.message || `Chat failed (HTTP ${response.status})`);
+  }
+
+  return result;
+}
+
+/**
+ * POST /api/v1/chatbot/tts
+ * Convert text to speech (audio/wav)
+ * Returns binary audio data (blob)
+ */
+export async function textToSpeech(token, text, voice = 'diana') {
+  const response = await fetch(`${API_BASE_URL}/api/v1/chatbot/tts`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ text, voice }),
+  });
+
+  if (!response.ok) {
+    const result = await response.json().catch(() => null);
+    throw new Error(result?.message || `TTS failed (HTTP ${response.status})`);
+  }
+
+  // Return blob directly for audio
+  return response.blob();
+}
+
+/**
+ * GET /api/v1/chatbot/voices
+ * Get list of available TTS voices
+ */
+export async function fetchAvailableVoices() {
+  const response = await fetch(`${API_BASE_URL}/api/v1/chatbot/voices`, {
+    method: 'GET',
+  });
+
+  const result = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(result?.message || `Failed to fetch voices (HTTP ${response.status})`);
+  }
+
+  return result.voices || [];
 }

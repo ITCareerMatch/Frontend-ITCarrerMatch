@@ -7,24 +7,29 @@
 const STORAGE_KEY = 'cv_analysis_session';
 
 /**
- * Storage structure:
+ * Storage structure for Guest:
  * {
  *   temp_token: string,        // For guest session claiming
- *   preview: object,           // Preview data from /cv/preview
- *   mode: 'guest' | 'authenticated',
+ *   mode: 'guest',
+ *   saved_at: timestamp
+ * }
+ *
+ * Storage structure for Authenticated:
+ * {
+ *   task_id: string,          // For polling status
+ *   mode: 'authenticated',
  *   saved_at: timestamp
  * }
  */
 
 export const CVStorage = {
   /**
-   * Save guest preview data to sessionStorage
-   * @param {object} data - { temp_token, preview }
+   * Save guest preview temp_token
+   * @param {string} tempToken - Temp token from /cv/preview
    */
-  saveGuestPreview(data) {
+  saveGuestTempToken(tempToken) {
     const payload = {
-      temp_token: data.temp_token,
-      preview: data.preview,
+      temp_token: tempToken,
       mode: 'guest',
       saved_at: Date.now()
     };
@@ -32,15 +37,19 @@ export const CVStorage = {
   },
 
   /**
-   * Get guest preview data from sessionStorage
-   * @returns {object|null} Stored data or null
+   * Get guest session data
+   * @returns {object|null} { temp_token, mode, saved_at } or null
    */
-  getGuestPreview() {
+  getGuestSession() {
     const raw = sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
 
     try {
-      return JSON.parse(raw);
+      const data = JSON.parse(raw);
+      if (data.mode === 'guest' && data.temp_token) {
+        return data;
+      }
+      return null;
     } catch {
       return null;
     }
@@ -48,7 +57,7 @@ export const CVStorage = {
 
   /**
    * Save authenticated analysis task ID
-   * @param {string} taskId - Task ID from analyzeCV()
+   * @param {string} taskId - Task ID from /cv/analyze
    */
   saveAuthenticatedTask(taskId) {
     const payload = {
@@ -87,8 +96,8 @@ export const CVStorage = {
    * @returns {boolean}
    */
   hasGuestSession() {
-    const data = this.getGuestPreview();
-    return data !== null && data.mode === 'guest' && !!data.temp_token;
+    const data = this.getGuestSession();
+    return data !== null && !!data.temp_token;
   },
 
   /**
@@ -100,21 +109,17 @@ export const CVStorage = {
   },
 
   /**
-   * Remove only the temp_token (after claiming)
-   * Keeps preview data for display
+   * Remove temp_token after claiming (called internally)
+   * Used to mark that claim was successful
    */
-  markAsClaimed() {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-
-    try {
-      const data = JSON.parse(raw);
-      delete data.temp_token;
-      data.claimed_at = Date.now();
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch {
-      // Ignore errors
-    }
+  _markAsClaimed(taskId) {
+    const payload = {
+      task_id: taskId,
+      mode: 'authenticated',
+      claimed_at: Date.now(),
+      saved_at: Date.now()
+    };
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   }
 };
 

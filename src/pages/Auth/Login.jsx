@@ -29,9 +29,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Ambil query parameter ?redirect= dari URL
+  // Ambil query parameter ?redirect= dan ?tempToken= dari URL
   const queryParams = new URLSearchParams(location.search);
   const redirectTarget = queryParams.get('redirect') || '/dashboard';
+  const tempTokenFromUrl = queryParams.get('tempToken');
 
   // --- Fungsi Login Email/Password ---
   const handleSubmit = async (e) => {
@@ -75,12 +76,19 @@ export default function Login() {
           }
         } catch (profileErr) {
           console.warn('Gagal update profile awal:', profileErr);
-          // Tetap lanjut ke redirect meskipun gagal update profile
-        }
-      }
+	          // Tetap lanjut ke redirect meskipun gagal update profile
+	        }
+	      }
 
-      navigate(redirectTarget);
-    } catch (error) {
+	      // Build redirect URL dengan tempToken jika ada
+	      let redirectUrl = redirectTarget;
+	      if (tempTokenFromUrl) {
+	        const separator = redirectTarget.includes('?') ? '&' : '?';
+	        redirectUrl = `${redirectTarget}${separator}tempToken=${tempTokenFromUrl}`;
+	      }
+
+	      navigate(redirectUrl);
+	    } catch (error) {
       setErrorMsg(error.message === "Invalid login credentials" ? "Email atau password salah." : error.message);
     } finally {
       setLoading(false);
@@ -92,11 +100,18 @@ export default function Login() {
     setLoading(true);
     setErrorMsg('');
     try {
+      // Build redirect URL dengan tempToken jika ada
+      let redirectUrl = redirectTarget;
+      if (tempTokenFromUrl) {
+        const separator = redirectTarget.includes('?') ? '&' : '?';
+        redirectUrl = `${redirectTarget}${separator}tempToken=${tempTokenFromUrl}`;
+      }
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           // Arahkan kembali ke target setelah login Google berhasil
-          redirectTo: `${window.location.origin}${redirectTarget}`
+          redirectTo: `${window.location.origin}${redirectUrl}`
         }
       });
       if (error) throw error;

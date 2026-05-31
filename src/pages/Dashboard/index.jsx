@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiPlusCircle, FiFileText, FiZap, FiCheckCircle, FiTarget } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
-import { fetchUserProfile, fetchJobRecommendations, fetchAnalysisHistory, fetchAnalysisDetail, fetchCVArchives } from '../../services/api';
+import { fetchUserProfile, fetchJobRecommendations, fetchAnalysisHistory, fetchCVArchives } from '../../services/api';
 import Swal from 'sweetalert2';
 
 // Components
@@ -81,25 +81,19 @@ export default function Dashboard() {
       }
 
       // 2. Fetch Recommendations - GET /api/v1/jobs/recommendations?cv_id={cv_id}
-      // Ambil cv_id dari detail analisis terakhir
+      // Ambil cv_id langsung dari CV archives (backend tidak selalu return cv_id di analysis detail)
       try {
-        // Ambil analisis terakhir dari history
-        const historyResult = await fetchAnalysisHistory(token, 1, 1);
-        const historyData = historyResult?.data || [];
-        const latestAnalysis = historyData[0];
+        // Ambil CV archives untuk dapat cv_id
+        const archivesResult = await fetchCVArchives(token);
+        const archives = archivesResult?.data || [];
 
-        // Jika ada analisis, ambil cv_id dari detail analisis
-        if (latestAnalysis?.id) {
-          const analysisDetail = await fetchAnalysisDetail(token, latestAnalysis.id);
-          const cvId = analysisDetail?.cv_id;
+        // Cari CV terakhir dengan status 'completed', atau gunakan yang paling baru
+        const latestCv = archives.find(cv => cv.status === 'completed') || archives[0];
 
-          if (cvId) {
-            const recs = await fetchJobRecommendations(token, cvId);
-            const recsData = Array.isArray(recs) ? recs : [];
-            setJobRecommendations(recsData.slice(0, 6)); // Ambil max 6 untuk preview
-          } else {
-            setJobRecommendations([]);
-          }
+        if (latestCv?.id) {
+          const recs = await fetchJobRecommendations(token, latestCv.id);
+          const recsData = Array.isArray(recs) ? recs : [];
+          setJobRecommendations(recsData.slice(0, 6)); // Ambil max 6 untuk preview
         } else {
           setJobRecommendations([]);
         }
