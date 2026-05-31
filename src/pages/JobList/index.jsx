@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiSearch, FiMapPin, FiBriefcase, FiFilter,
-  FiDollarSign, FiFileText, FiXCircle, FiClock, FiArrowRight, FiMenu, FiInfo
+  FiDollarSign, FiFileText, FiXCircle, FiClock, FiArrowRight, FiMenu, FiInfo, FiCheckCircle
 } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
 import { fetchAllJobs } from '../../services/api';

@@ -301,15 +301,16 @@ function JobCard({ job, index }) {
  * Data comes from polling /cv/status/{task_id}
  * Then fetches job recommendations based on cv_id
  */
-export default function AuthenticatedMode({ taskResult, onBackClick }) {
+export default function AuthenticatedMode({ taskResult, viewState, onBackClick }) {
   const token = localStorage.getItem('access_token');
   const [recommendedJobs, setRecommendedJobs] = useState([]);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
 
   // Extract data from taskResult polling response
   // Response format: { message, userId, cvId, user_age, jobs_filtered, skills_updated, recommendations_saved }
+  // NOTE: Backend returns cvId (camelCase), not cv_id (underscore)
   const message = taskResult?.message || 'Analisis berhasil.';
-  const cvId = taskResult?.cv_id || null;
+  const cvId = taskResult?.cvId || null; // camelCase from backend
   const userAge = taskResult?.user_age || null;
   const jobsFiltered = taskResult?.jobs_filtered || 0;
   const skillsUpdated = taskResult?.skills_updated || 0;
@@ -319,17 +320,46 @@ export default function AuthenticatedMode({ taskResult, onBackClick }) {
   // Since we don't have direct score, we use recommendations as proxy
   const score = recommendationsSaved > 0 ? Math.min(80 + (recommendationsSaved / 20) * 10, 95) : 65;
 
+  // Debug: log taskResult when component mounts or updates
+  useEffect(() => {
+    console.log('[AuthenticatedMode] ===== MOUNT =====');
+    console.log('[AuthenticatedMode] taskResult:', taskResult);
+    console.log('[AuthenticatedMode] cvId extracted:', cvId);
+    console.log('[AuthenticatedMode] token:', token ? 'EXISTS' : 'MISSING');
+    console.log('[AuthenticatedMode] recommendationsSaved:', recommendationsSaved);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskResult, cvId, token]);
+
   // Fetch job recommendations based on cv_id
   useEffect(() => {
-    if (!cvId || !token) return;
+    console.log('[AuthenticatedMode] ===== USEFFECT FETCH =====');
+    console.log('[AuthenticatedMode] cvId:', cvId);
+    console.log('[AuthenticatedMode] token:', token ? 'EXISTS' : 'MISSING');
+    console.log('[AuthenticatedMode] viewState:', viewState);
+
+    // Check prerequisites
+    if (!token) {
+      console.log('[AuthenticatedMode] ❌ SKIP: token missing');
+      return;
+    }
+    if (!cvId) {
+      console.log('[AuthenticatedMode] ❌ SKIP: cvId missing');
+      return;
+    }
+    if (viewState !== 'result') {
+      console.log('[AuthenticatedMode] ❌ SKIP: viewState is', viewState);
+      return;
+    }
 
     const fetchRecommendations = async () => {
+      console.log('[AuthenticatedMode] Starting fetch with cvId:', cvId);
       setLoadingRecommendations(true);
       try {
         const recs = await fetchJobRecommendations(token, cvId);
+        console.log('[AuthenticatedMode] fetchJobRecommendations result:', recs);
         setRecommendedJobs(Array.isArray(recs) ? recs : []);
       } catch (err) {
-        console.warn('Failed to fetch recommendations:', err);
+        console.error('[AuthenticatedMode] Failed to fetch recommendations:', err);
         setRecommendedJobs([]);
       } finally {
         setLoadingRecommendations(false);
@@ -337,6 +367,7 @@ export default function AuthenticatedMode({ taskResult, onBackClick }) {
     };
 
     fetchRecommendations();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cvId, token]);
 
   return (
@@ -508,7 +539,7 @@ export default function AuthenticatedMode({ taskResult, onBackClick }) {
               {recommendedJobs.length > 6 && (
                 <div className="p-6 pt-0">
                   <Link
-                    to="/lowongan"
+                    to="/daftar-lowongan"
                     className="flex items-center justify-center gap-2 w-full py-3 bg-slate-50 text-slate-600 font-bold text-sm rounded-xl hover:bg-slate-100 transition-colors"
                   >
                     Lihat Semua {recommendedJobs.length} Rekomendasi

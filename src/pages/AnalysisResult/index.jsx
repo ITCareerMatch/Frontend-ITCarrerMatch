@@ -134,14 +134,16 @@ export default function AnalysisResult() {
       console.log(`[claimAndPoll] Got taskId:`, taskId);
 
       if (taskId) {
-        // Clear storage sebelum navigate
+        // Clear storage sebelum poll
         CVStorage.clear();
 
-        // Navigate ke URL dengan taskId
-        navigate(`/analisis-result?mode=authenticated&taskId=${taskId}`, { replace: true });
-
         // Poll status dengan task_id yang didapat dari claim
+        // Langsung poll TANPA navigate karena kita akan set viewState ke 'result'
         await pollTask(taskId);
+
+        // Setelah poll selesai, navigate ke URL dengan taskId untuk bookmark
+        // useEffect akan skip karena taskId sudah diproses
+        window.history.replaceState(null, '', `/analisis-result?mode=authenticated&taskId=${taskId}`);
       } else {
         throw new Error('Server tidak mengembalikan task_id');
       }
@@ -150,20 +152,32 @@ export default function AnalysisResult() {
       setError(err.message);
       setViewState('failed');
     }
-  }, [token, pollTask, navigate]);
+  }, [token, pollTask]);
 
   // ===============================
   // MAIN LOADING EFFECT
   // ===============================
   useEffect(() => {
     const loadData = async () => {
-      setViewState('loading');
-
       // Parse URL params
       const params = new URLSearchParams(location.search);
       const mode = params.get('mode');
       const taskIdParam = params.get('taskId');
       const tempTokenParam = params.get('tempToken');
+
+      // Skip jika taskResult sudah ada (artinya poll sudah selesai dipanggil)
+      // Ini mencegah double call ketika useEffect re-run setelah claimAndPoll/navigasi
+      if (taskResult) {
+        console.log('[loadData] taskResult already exists, skipping...');
+        return;
+      }
+
+      // Skip jika viewState bukan 'loading' (sedang diproses)
+      // Ini mencegah overwrite state saat ada proses yang sedang berjalan
+      if (viewState !== 'loading') {
+        console.log('[loadData] viewState is', viewState, '- skipping...');
+        return;
+      }
 
       try {
         // FLOW C: Authenticated NewAnalysis - langsung polling dengan taskId dari URL
@@ -174,7 +188,6 @@ export default function AnalysisResult() {
 
         // FLOW B: Ada tempToken di URL dan user sudah login → langsung claim
         if (tempTokenParam && isLoggedIn) {
-          // claimAndPoll akan navigate ke URL dengan taskId
           await claimAndPoll(tempTokenParam);
           return;
         }
@@ -209,7 +222,7 @@ export default function AnalysisResult() {
     };
 
     loadData();
-  }, [token, location.search, isLoggedIn, navigate, pollTask, claimAndPoll]);
+  }, [token, location.search, isLoggedIn, navigate, pollTask, claimAndPoll, taskResult, viewState]);
 
   // ===============================
   // HANDLERS
@@ -278,6 +291,7 @@ export default function AnalysisResult() {
   return (
     <AuthenticatedMode
       taskResult={taskResult} // Kirim result dari polling, bukan dari storage
+      viewState={viewState} // Kirim viewState untuk check apakah sudah result
       onBackClick={handleBack}
     />
   );
