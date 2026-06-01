@@ -440,11 +440,6 @@ export default function LandingPage() {
       {/* FOOTER */}
       <Footer variant="full" />
 
-      {/* --- FLOATING CHATBOT BUTTON --- */}
-      <button className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-tr from-blue-600 to-indigo-600 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-105 transition-all z-50 cursor-pointer">
-        <BsFillChatDotsFill size={22} className="animate-pulse" />
-      </button>
-
       {/* --- INLINE STYLE UNTUK SINKRONISASI ANIMASI MARQUEE & SAAS LENS-FLARE SWEEP --- */}
       <style>{`
         @keyframes marquee {

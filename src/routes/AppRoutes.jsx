@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom';
 import AuthProvider from '../context/AuthContext';
 import About from '../pages/About';
+import FloatingChatbot from '../components/ui/FloatingChatbot';
 
 // 1. Lazy Loading Komponen
 const LandingPage = lazy(() => import('../pages/LandingPage'));
@@ -46,6 +47,7 @@ const RootLayout = () => {
   return (
     <AuthProvider>
       <Outlet />
+      <FloatingChatbot />
     </AuthProvider>
   );
 };
