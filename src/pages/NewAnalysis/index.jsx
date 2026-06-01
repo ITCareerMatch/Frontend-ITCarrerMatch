@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,7 +8,7 @@ import {
   FiClock, FiChevronRight, FiActivity
 } from 'react-icons/fi';
 import { BsStars, BsLightbulbFill } from 'react-icons/bs';
-import { analyzeCV, fetchAnalysisHistory } from '../../services/api';
+import { analyzeCV } from '../../services/api';
 
 // Konfigurasi animasi seragam
 // eslint-disable-next-line no-unused-vars
@@ -27,24 +27,6 @@ const staggerContainer = {
   }
 };
 
-// Helper: Format date
-const formatDate = (dateString) => {
-  if (!dateString) return '-';
-  return new Date(dateString).toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
-// Helper: Get score status
-const getScoreStatus = (score) => {
-  if (score >= 80) return { label: 'Sangat Baik', color: 'emerald', bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100' };
-  if (score >= 60) return { label: 'Cukup', color: 'amber', bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100' };
-  return { label: 'Optimasi', color: 'rose', bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-100' };
-};
-
 export default function NewAnalysis() {
   const navigate = useNavigate();
   const token = localStorage.getItem('access_token');
@@ -58,31 +40,6 @@ export default function NewAnalysis() {
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState('');
-  const [history, setHistory] = useState([]);
-  const [loadingHistory, setLoadingHistory] = useState(true);
-
-  // Fetch analysis history on mount
-  useEffect(() => {
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-
-    const fetchHistory = async () => {
-      try {
-        const data = await fetchAnalysisHistory(token, 1, 10);
-        // Response: { success, data: [...], meta: { page, limit, total } }
-        const historyData = data?.data || [];
-        setHistory(Array.isArray(historyData) ? historyData : []);
-      } catch (err) {
-        console.error('Error fetching history:', err);
-      } finally {
-        setLoadingHistory(false);
-      }
-    };
-
-    fetchHistory();
-  }, [token, navigate]);
 
   // Handle file change dengan Validasi 1MB
   const handleFileChange = (e) => {
@@ -325,88 +282,6 @@ export default function NewAnalysis() {
 
         {/* KOLOM KANAN (Riwayat & Widget Tambahan) */}
         <div className="lg:w-1/3 space-y-6 text-left shrink-0">
-
-          {/* DAFTAR RIWAYAT ANALISIS - INTERAKTIF */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden"
-          >
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center text-white">
-                  <FiActivity size={18} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">Riwayat Analisis</h3>
-                  <p className="text-xs text-slate-400">Terakhir dianalisis</p>
-                </div>
-              </div>
-              <button
-                onClick={() => navigate('/riwayat')}
-                className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
-              >
-                Lihat Semua
-                <FiChevronRight size={14} />
-              </button>
-            </div>
-
-            <div className="p-4">
-              {loadingHistory ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-16 bg-slate-50 rounded-xl animate-pulse" />
-                  ))}
-                </div>
-              ) : history.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="w-14 h-14 bg-slate-50 rounded-xl flex items-center justify-center mx-auto mb-3">
-                    <FiTarget size={24} className="text-slate-300" />
-                  </div>
-                  <p className="text-sm text-slate-500 font-medium mb-2">Belum ada analisis sebelumnya</p>
-                  <p className="text-xs text-slate-400">Upload CV untuk memulai analisis pertama</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {history.slice(0, 4).map((item, idx) => {
-                    const score = Math.round(item.match_score || 0);
-                    const status = getScoreStatus(score);
-                    return (
-                      <motion.div
-                        key={item.id || idx}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.05 }}
-                        onClick={() => navigate(`/riwayat/${item.id}`)}
-                        className="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors border border-transparent hover:border-slate-100"
-                      >
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${status.bg} ${status.text} border ${status.border}`}>
-                          <FiTarget size={18} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm text-slate-900 line-clamp-1">
-                            {item.job_title_snapshot || 'Analisis CV'}
-                          </p>
-                          <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-xs text-slate-400">{formatDate(item.analyzed_at)}</span>
-                            <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
-                            <span className="text-xs text-slate-400">{item.company_snapshot?.length || 0} perusahaan</span>
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <div className={`text-lg font-black ${status.color === 'emerald' ? 'text-emerald-600' : status.color === 'amber' ? 'text-amber-600' : 'text-rose-600'}`}>
-                            {score}
-                          </div>
-                          <p className="text-[10px] text-slate-400">poin</p>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </motion.div>
 
           {/* REAL-TIME SCAN METRICS */}
           <motion.div
