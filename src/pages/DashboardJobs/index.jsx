@@ -331,7 +331,7 @@ export default function DashboardJobs() {
 
         {/* SIDEBAR FILTER */}
         <aside className="w-full lg:w-1/4 space-y-6 shrink-0 text-left">
-          <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/60 shadow-sm sticky top-24">
+          <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/60 shadow-sm sticky top-0">
             
             {/* TIPE PEKERJAAN */}
             <h3 className="font-extrabold text-slate-900 mb-4 text-xs uppercase tracking-wider">
@@ -461,24 +461,6 @@ export default function DashboardJobs() {
                 <input type="number" name="maxSalary" placeholder="Max. Gaji" value={filters.maxSalary} onChange={handleInputChange} className="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-4 ring-blue-500/5 focus:border-blue-500 outline-none transition-all" />
               </div>
             </div>
-          </div>
-
-          {/* Banner Edit CV */}
-          <div className="bg-gradient-to-br from-blue-500/5 to-indigo-500/5 border border-blue-500/10 p-6 rounded-3xl text-center shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white opacity-40 rounded-full translate-x-1/3 -translate-y-1/3" />
-            <div className="w-12 h-12 bg-white text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-md border border-slate-100 relative z-10">
-              <BsStars size={20} />
-            </div>
-            <h4 className="font-bold text-slate-900 mb-2 relative z-10 leading-tight">Tingkatkan Skor Anda</h4>
-            <p className="text-xs text-slate-500 mb-5 relative z-10 leading-relaxed font-semibold">
-              Perbarui CV Anda di Editor untuk meningkatkan persentase kecocokan dengan lowongan.
-            </p>
-            <button
-              onClick={() => navigate('/editor')}
-              className="w-full bg-slate-900 text-white font-bold py-2.5 rounded-2xl hover:bg-slate-800 transition-colors text-xs shadow-md relative z-10 cursor-pointer"
-            >
-              Buka CV Editor
-            </button>
           </div>
         </aside>
 

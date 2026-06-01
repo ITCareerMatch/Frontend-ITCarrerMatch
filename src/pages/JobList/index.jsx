@@ -409,25 +409,6 @@ export default function JobList() {
               </div>
             </div>
           </div>
-
-          {!isLoggedIn ? (
-            <div className="bg-gradient-to-br from-slate-950 to-indigo-950 rounded-3xl p-6 text-center text-white shadow-xl relative overflow-hidden border border-slate-800">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-              <div className="relative z-10">
-                <div className="w-11 h-11 bg-white/5 text-amber-300 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/10"><BsStars size={20} className="animate-pulse" /></div>
-                <h4 className="font-bold text-base mb-2">Aktifkan AI Matcher</h4>
-                <p className="text-xs text-slate-400 mb-6 leading-relaxed font-medium">Masuk ke akun sekarang untuk melihat persentase kecocokan CV Anda secara langsung di setiap kartu lowongan.</p>
-                <button onClick={() => navigate('/login')} className="w-full bg-white text-slate-950 font-bold py-3 rounded-2xl hover:bg-slate-50 transition-colors text-xs cursor-pointer">Login / Daftar Gratis</button>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-gradient-to-br from-blue-500/5 to-indigo-500/5 border border-blue-500/10 p-6 rounded-3xl text-center">
-               <div className="w-11 h-11 bg-white text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-md border border-slate-100"><BsStars size={18}/></div>
-               <h4 className="font-bold text-slate-900 mb-2">Tingkatkan Skor Anda</h4>
-               <p className="text-xs text-slate-500 mb-5 leading-relaxed font-medium">Lakukan pengeditan dan optimasi teks resume Anda di Editor untuk peluang lolos yang lebih tinggi.</p>
-               <button onClick={() => navigate('/editor')} className="w-full bg-slate-900 text-white font-bold py-2.5 rounded-2xl hover:bg-slate-800 transition-colors text-xs shadow-md cursor-pointer">Buka CV Editor</button>
-            </div>
-          )}
         </aside>
 
         {/* --- DAFTAR LISTING LOWONGAN (Mengambil data penting dari payload) --- */}
