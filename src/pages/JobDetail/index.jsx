@@ -7,7 +7,7 @@ import {
   FiExternalLink, FiXCircle, FiInfo, FiMap, FiRefreshCw, FiTrendingUp, FiCheckCircle,
   FiTarget, FiUnlock
 } from 'react-icons/fi';
-import { fetchJobDetail, fetchAnalysisHistory } from '../../services/api';
+import { fetchJobDetail, fetchAnalysisHistory, fetchAnalysisDetail } from '../../services/api';
 
 // Konfigurasi animasi seragam
 const fadeInUp = {
@@ -79,10 +79,30 @@ export default function JobDetail() {
         if (token) {
           setAnalysisLoading(true);
           try {
-            const history = await fetchAnalysisHistory(token, 1, 20);
-            const relatedAnalysis = (history?.data || []).find(a => a.job_id === jobId);
-            if (relatedAnalysis) {
-              setAnalysisData(relatedAnalysis);
+            // First get all analyses to find the one matching this job
+            const history = await fetchAnalysisHistory(token, 1, 100);
+            const analyses = history?.data || [];
+            const relatedAnalysis = analyses.find(a => a.job_id === jobId);
+
+            if (relatedAnalysis?.id) {
+              // Fetch detail to get skill_match and skill_gap
+              const detail = await fetchAnalysisDetail(token, relatedAnalysis.id);
+
+              // Fallback: extract skill_match/skill_gap from skill_details if not in response
+              const skillMatchFromDetails = (detail.skill_details || [])
+                .filter(s => s.status === 'match')
+                .map(s => s.skill_name_snapshot);
+              const skillGapFromDetails = (detail.skill_details || [])
+                .filter(s => s.status === 'gap')
+                .map(s => s.skill_name_snapshot);
+
+              setAnalysisData({
+                ...detail,
+                // Ensure match_score is a number
+                match_score: parseFloat(detail.match_score) || 0,
+                skill_match: (detail.skill_match?.length > 0) ? detail.skill_match : skillMatchFromDetails,
+                skill_gap: (detail.skill_gap?.length > 0) ? detail.skill_gap : skillGapFromDetails,
+              });
             }
           } catch (e) {
             console.warn('Gagal fetch analysis:', e);
@@ -358,12 +378,12 @@ export default function JobDetail() {
                         <div className="flex flex-wrap gap-1.5">
                           {(analysisData.skill_match || []).length > 0 ? (
                             analysisData.skill_match.map((skill, idx) => (
-                              <span key={idx} className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded-lg">
+                              <span key={idx} className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-[12px] font-bold rounded-lg">
                                 {typeof skill === 'string' ? skill : skill?.name || 'Tidak Ada Skill yang cocok'}
                               </span>
                             ))
                           ) : (
-                            <span className="text-[10px] text-slate-500">-</span>
+                            <span className="text-[12px] text-slate-500">-</span>
                           )}
                         </div>
                       </div>
@@ -376,12 +396,12 @@ export default function JobDetail() {
                         <div className="flex flex-wrap gap-1.5">
                           {(analysisData.skill_gap || []).length > 0 ? (
                             analysisData.skill_gap.map((skill, idx) => (
-                              <span key={idx} className="px-2 py-1 bg-rose-500/20 text-rose-400 text-[10px] font-bold rounded-lg">
+                              <span key={idx} className="px-2 py-1 bg-rose-500/20 text-rose-400 text-[12px] font-bold rounded-lg">
                                 {typeof skill === 'string' ? skill : skill?.name || 'Tidak Ada Skill yang kurang'}
                               </span>
                             ))
                           ) : (
-                            <span className="text-[10px] text-slate-500">-</span>
+                            <span className="text-[12px] text-slate-500">-</span>
                           )}
                         </div>
                       </div>
