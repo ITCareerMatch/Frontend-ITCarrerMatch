@@ -197,14 +197,7 @@ export default function DashLayout() {
           </div>
 
           {/* SISI KANAN: Notifikasi + Profil */}
-          <div className="flex items-center gap-4 relative" ref={profileRef}>
-            <button className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-all relative group">
-              <FiBell size={20} className="transition-transform duration-300 group-hover:rotate-12" />
-              <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-rose-500 rounded-full ring-2 ring-white"></span>
-            </button>
-            
-            <div className="h-5 w-px bg-slate-200/80"></div>
-            
+          <div className="flex items-center gap-4 relative" ref={profileRef}>            
             <button 
               onClick={() => setIsProfileOpen(!isProfileOpen)} 
               className="flex items-center gap-2 hover:bg-slate-50 p-1 rounded-full border border-slate-200/50 hover:border-slate-300 transition-all duration-300 cursor-pointer shadow-sm active:scale-95"

@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import {
   FiArrowLeft, FiMapPin, FiBriefcase, FiDollarSign, FiClock,
   FiExternalLink, FiXCircle, FiInfo, FiMap, FiRefreshCw, FiTrendingUp, FiCheckCircle,
-  FiTarget, FiLock, FiUnlock
+  FiTarget, FiUnlock
 } from 'react-icons/fi';
 import { fetchJobDetail, fetchAnalysisHistory } from '../../services/api';
 
@@ -13,6 +13,22 @@ import { fetchJobDetail, fetchAnalysisHistory } from '../../services/api';
 const fadeInUp = {
   hidden: { opacity: 0, y: 12 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.65, ease: [0.16, 1, 0.3, 1] } }
+};
+
+// Helper: Format number to Indonesian Rupiah (e.g., 3000000 -> "Rp 3.000.000,00")
+const formatRupiah = (num) => {
+  if (!num || num <= 0) return '-';
+  const str = num.toString();
+  let result = '';
+  let count = 0;
+  for (let i = str.length - 1; i >= 0; i--) {
+    if (count > 0 && count % 3 === 0) {
+      result = '.' + result;
+    }
+    result = str[i] + result;
+    count++;
+  }
+  return `Rp ${result},00`;
 };
 
 const staggerContainer = {
@@ -234,9 +250,7 @@ export default function JobDetail() {
                 <span className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-2.5 py-1.5 rounded-lg"><FiMapPin className="shrink-0" /> {job?.city || 'Remote'}{job?.province ? `, ${job.province}` : ''}</span>
                 <span className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-2.5 py-1.5 rounded-lg"><FiBriefcase className="shrink-0" /> {job?.job_type || 'Full-Time'} ({job?.work_system || 'WFO'})</span>
                 <span className="flex items-center gap-1 bg-emerald-500/5 text-emerald-700 px-2.5 py-1.5 rounded-lg border border-emerald-500/10 shadow-sm">
-                  <FiDollarSign className="shrink-0" /> {job?.salary_raw || 'Gaji Kompetitif'}
-                </span>
-                <span className="flex items-center gap-1 bg-slate-50 border border-slate-100 px-2.5 py-1.5 rounded-lg"><FiClock className="shrink-0" /> {job?.created_at ? new Date(job.created_at).toLocaleDateString('id-ID') : '-'}</span>
+                <span className="shrink-0" /> {job?.salary_raw || 'Gaji Kompetitif'}</span>
               </div>
             </div>
           </div>
@@ -387,7 +401,7 @@ export default function JobDetail() {
               </div>
             </div>
           ) : (
-            <div className="bg-gray-200 rounded-2xl border border-slate-200 p-6 text-center relative overflow-hidden">
+            <div className="bg-gray-100 rounded-2xl border border-slate-200 p-6 text-center relative overflow-hidden">
               {/* Lock icon decoration */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-slate-200/50 rounded-full blur-2xl" />
 
@@ -398,35 +412,61 @@ export default function JobDetail() {
                   transition={{ type: 'spring', stiffness: 200 }}
                   className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm"
                 >
-                  <FiLock size={28} className="text-slate-400" />
+                  <FiTarget size={28} className="text-slate-400" />
                 </motion.div>
 
-                <h3 className="font-bold text-slate-700 text-sm mb-2">Skor Kecocokan Tertutup</h3>
-                <p className="text-xs text-slate-500 mb-4 max-w-sm mx-auto leading-relaxed">
-                  Silakan login dan cek skor Anda untuk melihat skor kecocokan CV terhadap lowongan ini
-                </p>
+                {isLoggedIn ? (
+                  <>
+                    <h3 className="font-bold text-slate-700 text-sm mb-2">Skor Kecocokan Tidak Ada</h3>
+                    <p className="text-xs text-slate-500 mb-4 max-w-sm mx-auto leading-relaxed">
+                      Silakan cek skor Anda untuk melihat skor kecocokan CV terhadap lowongan ini
+                    </p>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="flex flex-col sm:flex-row items-center justify-center gap-3"
-                >
-                  <button
-                    onClick={() => navigate('/login')}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-md cursor-pointer border border-blue-700/50"
-                  >
-                    <FiUnlock size={14} />
-                    Login Sekarang
-                  </button>
-                  <button
-                    onClick={() => navigate('/cek-skor')}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-colors shadow-sm border border-slate-200 cursor-pointer"
-                  >
-                    <FiTarget size={14} />
-                    Cek Skor
-                  </button>
-                </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="flex items-center justify-center"
+                    >
+                      <button
+                        onClick={() => navigate('/analisis-baru')}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-md cursor-pointer border border-blue-700/50"
+                      >
+                        <FiTarget size={14} />
+                        Analisis CV Sekarang
+                      </button>
+                    </motion.div>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="font-bold text-slate-700 text-sm mb-2">Skor Kecocokan Tertutup</h3>
+                    <p className="text-xs text-slate-500 mb-4 max-w-sm mx-auto leading-relaxed">
+                      Silakan login dan cek skor Anda untuk melihat skor kecocokan CV terhadap lowongan ini
+                    </p>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="flex flex-col sm:flex-row items-center justify-center gap-3"
+                    >
+                      <button
+                        onClick={() => navigate('/login')}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-md cursor-pointer border border-blue-700/50"
+                      >
+                        <FiUnlock size={14} />
+                        Login Sekarang
+                      </button>
+                      <button
+                        onClick={() => navigate('/cek-skor')}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-colors shadow-sm border border-slate-200 cursor-pointer"
+                      >
+                        <FiTarget size={14} />
+                        Cek Skor
+                      </button>
+                    </motion.div>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -469,11 +509,11 @@ export default function JobDetail() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center pb-4 border-b border-slate-100 text-xs sm:text-sm font-semibold">
                   <span className="text-slate-400 flex items-center gap-2 uppercase tracking-wider"><FiTrendingUp className="text-blue-500" /> Gaji Minimal</span>
-                  <span className="font-extrabold text-slate-900">{job?.salary_min > 0 ? `Rp ${job.salary_min.toLocaleString('id-ID')}` : '-'}</span>
+                  <span className="font-extrabold text-slate-900">{formatRupiah(job?.salary_min)}</span>
                 </div>
                 <div className="flex justify-between items-center pb-4 border-b border-slate-100 text-xs sm:text-sm font-semibold">
                   <span className="text-slate-400 flex items-center gap-2 uppercase tracking-wider"><FiBriefcase className="text-blue-500" /> Gaji Maksimal</span>
-                  <span className="font-extrabold text-slate-900">{job?.salary_max > 0 ? `Rp ${job.salary_max.toLocaleString('id-ID')}` : '-'}</span>
+                  <span className="font-extrabold text-slate-900">{formatRupiah(job?.salary_max)}</span>
                 </div>
                 <div className="flex justify-between items-center pt-2 text-xs sm:text-sm font-semibold">
                   <span className="text-slate-400 flex items-center gap-2 uppercase tracking-wider"><FiInfo className="text-blue-500" /> Sistem Kerja</span>

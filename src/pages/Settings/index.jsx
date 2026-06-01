@@ -125,12 +125,6 @@ export default function Settings() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [notifState, setNotifState] = useState({
-    jobMatch: true,
-    tips: true,
-    updates: false
-  });
-
   const [editMode, setEditMode] = useState({
     profile: false,
     contact: false
@@ -829,38 +823,6 @@ export default function Settings() {
                 </button>
               </div>
             )}
-          </motion.div>
-
-          {/* SECTION 3: NOTIFIKASI */}
-          <motion.div 
-            variants={fadeInUp}
-            whileHover={{ y: -2 }}
-            className="bg-white/70 backdrop-blur-md rounded-3xl p-6 md:p-8 border border-slate-200/60 shadow-sm"
-          >
-            <div className="mb-6 flex items-center gap-2">
-              <div className="w-10 h-10 bg-blue-500/10 text-blue-600 rounded-xl flex items-center justify-center border border-blue-500/10"><FiBell size={18}/></div>
-              <div>
-                <h2 className="text-base font-extrabold text-slate-900 uppercase tracking-wider">Preferensi Notifikasi</h2>
-                <p className="text-xs text-slate-400 font-semibold mt-0.5">Kelola saluran informasi keluar masuk data.</p>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-50">
-                <div>
-                  <h4 className="font-bold text-sm text-slate-900">Surel kecocokan pekerjaan baru</h4>
-                  <p className="text-xs text-slate-400 mt-0.5 max-w-sm font-semibold leading-relaxed">Kirim ringkasan mingguan jika terdapat lowongan baru yang setara kualifikasi.</p>
-                </div>
-                <ToggleSwitch active={notifState.jobMatch} onClick={() => setNotifState(p => ({...p, jobMatch: !p.jobMatch}))} />
-              </div>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-bold text-sm text-slate-900">Tips berkas karir mingguan</h4>
-                  <p className="text-xs text-slate-400 mt-0.5 max-w-sm font-semibold leading-relaxed">Saran asisten karir optimasi parsing resume ATS-Friendly.</p>
-                </div>
-                <ToggleSwitch active={notifState.tips} onClick={() => setNotifState(p => ({...p, tips: !p.tips}))} />
-              </div>
-            </div>
           </motion.div>
 
           {/* SECTION 4: DANGER ZONE */}

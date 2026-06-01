@@ -38,8 +38,7 @@ export default function Navbar({ variant = 'landing', activeItem = '' }) {
         ];
       case 'transparent':
         return [
-          { label: 'Cara Kerja', path: '#cara-kerja', scroll: true },
-          { label: 'Fitur AI', path: '#fitur', scroll: true },
+          { label: 'Beranda', path: '/' },
           { label: 'Daftar Lowongan', path: '/lowongan' },
           { label: 'Tentang Kami', path: '/tentang-kami' },
         ];
