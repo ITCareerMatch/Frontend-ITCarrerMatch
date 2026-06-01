@@ -4,9 +4,10 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   FiArrowLeft, FiMapPin, FiBriefcase, FiDollarSign, FiClock,
-  FiExternalLink, FiXCircle, FiInfo, FiMap, FiRefreshCw, FiTrendingUp, FiCheckCircle
+  FiExternalLink, FiXCircle, FiInfo, FiMap, FiRefreshCw, FiTrendingUp, FiCheckCircle,
+  FiTarget, FiLock, FiUnlock
 } from 'react-icons/fi';
-import { fetchJobDetail } from '../../services/api';
+import { fetchJobDetail, fetchAnalysisHistory } from '../../services/api';
 
 // Konfigurasi animasi seragam
 const fadeInUp = {
@@ -39,6 +40,8 @@ export default function JobDetail() {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [analysisData, setAnalysisData] = useState(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
 
   useEffect(() => {
     const fetchJobAndAnalysis = async () => {
@@ -46,14 +49,31 @@ export default function JobDetail() {
         if (!jobId) throw new Error("ID tidak ditemukan di URL");
 
         const response = await fetchJobDetail(jobId);
-        
+
         const jobData = response?.data || response;
 
         if (!jobData || (!jobData.id && !jobData.title)) {
           throw new Error("Pekerjaan tidak ditemukan di server");
         }
 
-        setJob(jobData); // Menyimpan data pekerjaan murni tanpa analisis AI
+        setJob(jobData);
+
+        // Ambil data analysis jika user sudah login
+        const token = localStorage.getItem('access_token');
+        if (token) {
+          setAnalysisLoading(true);
+          try {
+            const history = await fetchAnalysisHistory(token, 1, 20);
+            const relatedAnalysis = (history?.data || []).find(a => a.job_id === jobId);
+            if (relatedAnalysis) {
+              setAnalysisData(relatedAnalysis);
+            }
+          } catch (e) {
+            console.warn('Gagal fetch analysis:', e);
+          } finally {
+            setAnalysisLoading(false);
+          }
+        }
 
       } catch (error) {
         console.error('Error proses detail job:', error);
@@ -80,8 +100,15 @@ export default function JobDetail() {
     if (job?.min_age && job?.max_age) return `${job.min_age} - ${job.max_age} tahun`;
     if (job?.min_age) return `Minimal ${job.min_age} tahun`;
     if (job?.max_age) return `Maksimal ${job.max_age} tahun`;
-    if (job?.age_note) return job.age_note; 
+    if (job?.age_note) return job.age_note;
     return 'Tidak ada batasan usia';
+  };
+
+  // Helper: Get score status
+  const getScoreStatus = (score) => {
+    if (score >= 80) return { label: 'Kompatibilitas Tinggi', color: 'emerald' };
+    if (score >= 60) return { label: 'Kompatibilitas Sedang', color: 'amber' };
+    return { label: 'Perlu Optimasi', color: 'rose' };
   };
 
   if (loading) {
@@ -243,6 +270,166 @@ export default function JobDetail() {
             <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest mb-1.5">Lokasi Kerja</p>
             <p className="text-xs sm:text-sm font-extrabold text-slate-900 leading-tight capitalize truncate">{job?.city || 'Remote'}</p>
           </motion.div>
+        </motion.div>
+
+        {/* --- ANALISIS CV CARD --- */}
+        <motion.div variants={fadeInUp} className="mb-8">
+          {analysisLoading ? (
+            <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-slate-100 rounded-xl animate-pulse" />
+                <div className="flex-1">
+                  <div className="h-4 bg-slate-100 rounded w-1/3 mb-2 animate-pulse" />
+                  <div className="h-3 bg-slate-100 rounded w-1/4 animate-pulse" />
+                </div>
+              </div>
+            </div>
+          ) : analysisData ? (
+            <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 rounded-2xl p-6 relative overflow-hidden">
+              {/* Background decoration */}
+              <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full blur-3xl" />
+
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white/10 text-amber-400 rounded-xl flex items-center justify-center">
+                      <FiTarget size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white text-sm">Skor Kecocokan CV</h3>
+                      <p className="text-xs text-slate-400">Analisis dari CV Anda</p>
+                    </div>
+                  </div>
+                  <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                    getScoreStatus(analysisData.match_score).color === 'emerald' ? 'bg-emerald-500/20 text-emerald-400' :
+                    getScoreStatus(analysisData.match_score).color === 'amber' ? 'bg-amber-500/20 text-amber-400' :
+                    'bg-rose-500/20 text-rose-400'
+                  }`}>
+                    {getScoreStatus(analysisData.match_score).label}
+                  </span>
+                </div>
+
+                {/* Score Ring */}
+                <div className="flex items-center gap-6">
+                  <div className="relative w-20 h-20">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                      <circle className="text-slate-700" strokeWidth="8" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50" />
+                      <motion.circle
+                        initial={{ strokeDashoffset: 251 }}
+                        animate={{ strokeDashoffset: 251 - (analysisData.match_score / 100) * 251 }}
+                        transition={{ duration: 1.5, ease: 'easeOut' }}
+                        className={`${analysisData.match_score >= 80 ? 'text-emerald-400' : analysisData.match_score >= 60 ? 'text-amber-400' : 'text-rose-400'}`}
+                        strokeWidth="8"
+                        strokeDasharray="251"
+                        strokeLinecap="round"
+                        stroke="currentColor"
+                        fill="transparent"
+                        r="40"
+                        cx="50"
+                        cy="50"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xl font-black text-white">{Math.round(analysisData.match_score)}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex-1">
+                    <div className="flex flex-wrap gap-3">
+                      {/* Skill Match */}
+                      <div className="flex-1 min-w-[140px]">
+                        <p className="text-[12px] text-slate-400 font-bold uppercase tracking-wider mb-2 flex items-center gap-1">
+                          <FiCheckCircle size={15} className="text-emerald-400" /> Skill Cocok
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(analysisData.skill_match || []).length > 0 ? (
+                            analysisData.skill_match.map((skill, idx) => (
+                              <span key={idx} className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded-lg">
+                                {typeof skill === 'string' ? skill : skill?.name || 'Tidak Ada Skill yang cocok'}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-[10px] text-slate-500">-</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Skill Gap */}
+                      <div className="flex-1 min-w-[140px]">
+                        <p className="text-[12px] text-slate-400 font-bold uppercase tracking-wider mb-2 flex items-center gap-1">
+                          <FiXCircle size={15} className="text-rose-400" /> Skill Kurang
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(analysisData.skill_gap || []).length > 0 ? (
+                            analysisData.skill_gap.map((skill, idx) => (
+                              <span key={idx} className="px-2 py-1 bg-rose-500/20 text-rose-400 text-[10px] font-bold rounded-lg">
+                                {typeof skill === 'string' ? skill : skill?.name || 'Tidak Ada Skill yang kurang'}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-[10px] text-slate-500">-</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI Insight */}
+                {analysisData.ai_insight && (
+                  <div className="mt-4 p-3 bg-white/5 rounded-xl">
+                    <p className="text-[12px] text-slate-400 font-bold uppercase tracking-wider mb-1">Insight AI</p>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      {Array.isArray(analysisData.ai_insight) ? analysisData.ai_insight.join(' ') : analysisData.ai_insight}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gray-200 rounded-2xl border border-slate-200 p-6 text-center relative overflow-hidden">
+              {/* Lock icon decoration */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-slate-200/50 rounded-full blur-2xl" />
+
+              <div className="relative z-10">
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 200 }}
+                  className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm"
+                >
+                  <FiLock size={28} className="text-slate-400" />
+                </motion.div>
+
+                <h3 className="font-bold text-slate-700 text-sm mb-2">Skor Kecocokan Tertutup</h3>
+                <p className="text-xs text-slate-500 mb-4 max-w-sm mx-auto leading-relaxed">
+                  Silakan login dan cek skor Anda untuk melihat skor kecocokan CV terhadap lowongan ini
+                </p>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex flex-col sm:flex-row items-center justify-center gap-3"
+                >
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-md cursor-pointer border border-blue-700/50"
+                  >
+                    <FiUnlock size={14} />
+                    Login Sekarang
+                  </button>
+                  <button
+                    onClick={() => navigate('/cek-skor')}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-colors shadow-sm border border-slate-200 cursor-pointer"
+                  >
+                    <FiTarget size={14} />
+                    Cek Skor
+                  </button>
+                </motion.div>
+              </div>
+            </div>
+          )}
         </motion.div>
 
         {/* --- DUA KOLOM SPESIFIKASI --- */}
