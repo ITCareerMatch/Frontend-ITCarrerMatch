@@ -112,7 +112,7 @@ export default function StatsCards({ profileCompleteness, jobCount, archives, on
       label: 'CV Archives',
       icon: <FiFileText size={18} />,
       accent: 'amber',
-      onClick: () => onNavigate('/riwayat'),
+      onClick: () => onNavigate('/riwayat?tab=archives'),
     },
   ];
 
