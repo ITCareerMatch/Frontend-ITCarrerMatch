@@ -82,35 +82,27 @@ export default function AnalysisResult() {
       }
 
       try {
-        console.log(`[pollTask] Attempt ${attempts + 1}: Checking status for taskId:`, taskId);
         const result = await checkCVStatus(token, taskId);
-        console.log(`[pollTask] Response:`, result);
-
         const status = result?.status;
         setCurrentStep(Math.min(attempts, 4));
 
         if (status === 'completed') {
-          console.log(`[pollTask] Analysis completed! Result:`, result?.result);
-          // Simpan result dari polling
           setTaskResult(result?.result || null);
           setViewState('result');
-          // Clear storage after getting result
           CVStorage.clear();
           return;
         }
 
         if (status === 'failed') {
-          console.log(`[pollTask] Analysis failed:`, result?.result);
           setViewState('failed');
           setError(result?.result?.message || 'Analisis CV gagal.');
           return;
         }
 
-        console.log(`[pollTask] Still processing... status:`, status);
         attempts++;
         pollingRef.current = setTimeout(poll, 3000);
       } catch (err) {
-        console.error(`[pollTask] Error on attempt ${attempts + 1}:`, err.message);
+        console.warn(`Poll ${attempts}:`, err.message);
         attempts++;
         pollingRef.current = setTimeout(poll, 3000);
       }
@@ -127,22 +119,12 @@ export default function AnalysisResult() {
     setCurrentStep(0);
 
     try {
-      console.log(`[claimAndPoll] Claiming session with tempToken:`, tempToken);
-      // POST /cv/claim dengan temp_token
-      // claimCVSession sudah return task_id langsung
       const taskId = await claimCVSession(token, tempToken);
-      console.log(`[claimAndPoll] Got taskId:`, taskId);
 
       if (taskId) {
-        // Clear storage sebelum poll
         CVStorage.clear();
-
-        // Poll status dengan task_id yang didapat dari claim
-        // Langsung poll TANPA navigate karena kita akan set viewState ke 'result'
         await pollTask(taskId);
-
-        // Setelah poll selesai, navigate ke URL dengan taskId untuk bookmark
-        // useEffect akan skip karena taskId sudah diproses
+        // Update URL untuk bookmark
         window.history.replaceState(null, '', `/analisis-result?mode=authenticated&taskId=${taskId}`);
       } else {
         throw new Error('Server tidak mengembalikan task_id');

@@ -1,14 +1,81 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
-import { FiTarget, FiPlusCircle, FiChevronRight } from 'react-icons/fi';
+import { FiTarget, FiPlusCircle, FiChevronRight, FiArrowRight, FiArrowRightCircle } from 'react-icons/fi';
 import { BsLightningChargeFill } from 'react-icons/bs';
 
 /**
+ * Mini Animated Score Ring for Dashboard JobCard
+ */
+function MiniScoreRing({ score, size = 48, strokeWidth = 4 }) {
+  const [animatedScore, setAnimatedScore] = useState(0);
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const center = size / 2;
+
+  useEffect(() => {
+    const duration = 1200;
+    const startTime = Date.now();
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      setAnimatedScore(Math.round(score * easeOut));
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    animate();
+  }, [score]);
+
+  const strokeDashoffset = circumference - (animatedScore / 100) * circumference;
+
+  const getScoreColor = (s) => {
+    if (s >= 80) return '#10b981';
+    if (s >= 60) return '#f59e0b';
+    return '#f43f5e';
+  };
+
+  const color = getScoreColor(score);
+
+  return (
+    <div className="relative shrink-0">
+      <svg width={size} height={size} className="transform -rotate-90">
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke="#f1f5f9"
+          strokeWidth={strokeWidth}
+        />
+        <motion.circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-xs font-black text-slate-700">{animatedScore}%</span>
+      </div>
+    </div>
+  );
+}
+
+/**
  * RecommendationsList Component - Job recommendations on dashboard
- * API: GET /api/v1/jobs/recommendations?cv_id={cv_id}
- * Response: { success, data: [{ job_id, job_title, company, match_score, skill_match, skill_gap, ai_insight }] }
- * Requires cv_id dari analisis terakhir atau CV archives
+ * Jobs sudah di-sort berdasarkan match_score tertinggi di Dashboard
  */
 export default function RecommendationsList({
   jobs,
@@ -32,14 +99,14 @@ export default function RecommendationsList({
           </div>
           <div>
             <h2 className="font-bold text-slate-900">Rekomendasi Kerja</h2>
-            <p className="text-xs text-slate-500">Berdasarkan profil& CV Anda</p>
+            <p className="text-xs text-slate-500">Berdasarkan profil & CV Anda</p>
           </div>
         </div>
         <button
           onClick={onViewAll}
-          className="flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors"
+          className="flex items-center gap-1 text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
         >
-          Lihat Semua
+          Lihat Lebih Banyak
           <FiChevronRight size={16} />
         </button>
       </div>
@@ -74,13 +141,12 @@ export default function RecommendationsList({
                 key={job.job_id || idx}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.05 }}
+                transition={{ delay: idx * 0.03 }}
                 className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition-all cursor-pointer group"
                 onClick={() => onNavigate(`/dashboard/detail/${job.job_id}`)}
               >
-                <div className="w-12 h-12 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl flex items-center justify-center font-black text-slate-600 group-hover:from-blue-50 group-hover:to-indigo-50 group-hover:text-blue-600 transition-colors text-lg shrink-0">
-                  {job.job_title?.substring(0, 2).toUpperCase() || 'JB'}
-                </div>
+                {/* Animated Score Ring */}
+                <MiniScoreRing score={job.match_score || 0} size={52} strokeWidth={4} />
 
                 <div className="flex-1 min-w-0">
                   <h4 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
@@ -88,29 +154,24 @@ export default function RecommendationsList({
                   </h4>
                   <p className="text-xs text-slate-500 mt-0.5">{job.company || 'Perusahaan'}</p>
                   <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
-                    {job.skill_match?.length > 0 && (
+                    {job.location && (
+                      <span className="text-slate-400">{job.location}</span>
+                    )}
+                    {job.skill_match_count > 0 && (
                       <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">
-                        {job.skill_match.length} skill cocok
+                        {job.skill_match_count} skill cocok
                       </span>
                     )}
-                    {job.skill_gap?.length > 0 && (
+                    {job.skill_gap_count > 0 && (
                       <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded">
-                        {job.skill_gap.length} skill perlu ditambahkan
+                        {job.skill_gap_count} perlu dikembangkan
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="text-right shrink-0">
-                  <div className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-black ${
-                    job.match_score >= 80
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                      : job.match_score >= 60
-                      ? 'bg-amber-50 text-amber-700 border border-amber-100'
-                      : 'bg-slate-50 text-slate-600 border border-slate-100'
-                  }`}>
-                    {Math.round(job.match_score || 0)}% Match
-                  </div>
+                <div className="ml-auto flex items-center gap-1 text-sm font-bold text-blue-600 group-hover:text-blue-800 transition-colors mr-4">
+                  <FiArrowRightCircle size={22} className="text-slate-400 group-hover:text-blue-600 transition-colors hover:translate-x-1 transition-transform" />
                 </div>
               </motion.div>
             ))}

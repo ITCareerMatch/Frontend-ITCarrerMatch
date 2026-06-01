@@ -147,45 +147,17 @@ export default function AuthenticatedMode({ taskResult, viewState, onBackClick }
   const skillsUpdated = taskResult?.skills_updated || 0;
   const recommendationsSaved = taskResult?.recommendations_saved || 0;
 
-  // Debug: log taskResult when component mounts or updates
-  useEffect(() => {
-    console.log('[AuthenticatedMode] ===== MOUNT =====');
-    console.log('[AuthenticatedMode] taskResult:', taskResult);
-    console.log('[AuthenticatedMode] cvId extracted:', cvId);
-    console.log('[AuthenticatedMode] token:', token ? 'EXISTS' : 'MISSING');
-    console.log('[AuthenticatedMode] recommendationsSaved:', recommendationsSaved);
-  }, [taskResult, cvId, token, recommendationsSaved]);
-
   // Fetch job recommendations based on cv_id
   useEffect(() => {
-    console.log('[AuthenticatedMode] ===== USEFFECT FETCH =====');
-    console.log('[AuthenticatedMode] cvId:', cvId);
-    console.log('[AuthenticatedMode] token:', token ? 'EXISTS' : 'MISSING');
-    console.log('[AuthenticatedMode] viewState:', viewState);
-
-    // Check prerequisites
-    if (!token) {
-      console.log('[AuthenticatedMode] SKIP: token missing');
-      return;
-    }
-    if (!cvId) {
-      console.log('[AuthenticatedMode] SKIP: cvId missing');
-      return;
-    }
-    if (viewState !== 'result') {
-      console.log('[AuthenticatedMode] SKIP: viewState is', viewState);
-      return;
-    }
+    if (!token || !cvId || viewState !== 'result') return;
 
     const fetchRecommendations = async () => {
-      console.log('[AuthenticatedMode] Starting fetch with cvId:', cvId);
       setLoadingRecommendations(true);
       try {
         const recs = await fetchJobRecommendations(token, cvId);
-        console.log('[AuthenticatedMode] fetchJobRecommendations result:', recs);
         setRecommendedJobs(Array.isArray(recs) ? recs : []);
       } catch (err) {
-        console.error('[AuthenticatedMode] Failed to fetch recommendations:', err);
+        console.warn('Failed to fetch recommendations:', err);
         setRecommendedJobs([]);
       } finally {
         setLoadingRecommendations(false);

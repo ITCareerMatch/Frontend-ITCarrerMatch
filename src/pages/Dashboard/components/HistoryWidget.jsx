@@ -46,7 +46,7 @@ export default function HistoryWidget({ history, loading, onNavigate, onStartAna
         </h3>
         <button
           onClick={onNavigate}
-          className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+          className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
         >
           Selengkapnya <FiChevronRight size={14} />
         </button>

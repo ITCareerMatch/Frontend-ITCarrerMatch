@@ -23,7 +23,7 @@ export default function ProfileWidget({ profileCompleteness, onNavigate }) {
         </h3>
         <button
           onClick={onNavigate}
-          className="text-xs font-bold text-blue-600 hover:text-blue-800"
+          className="text-xs font-bold text-blue-600 hover:text-blue-800 cursor-pointer flex items-center gap-1"
         >
           Edit
         </button>

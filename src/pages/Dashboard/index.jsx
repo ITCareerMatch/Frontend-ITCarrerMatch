@@ -55,6 +55,8 @@ export default function Dashboard() {
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [totalAnalysis, setTotalAnalysis] = useState(0);
+  const [latestCv, setLatestCv] = useState(null);
+  const [archives, setArchives] = useState([]);
 
   // Load all data on mount
   useEffect(() => {
@@ -64,13 +66,16 @@ export default function Dashboard() {
     }
 
     const loadData = async () => {
-      //1. Fetch Profile - GET /api/v1/user/profile
+      // 1. Fetch Profile
+      setProfileLoading(true);
+      setJobsLoading(true);
+      setHistoryLoading(true);
+
       try {
         const profileData = await fetchUserProfile(token);
         setProfile(profileData);
       } catch (err) {
         console.error('Gagal memuat profil:', err);
-        // Handle 401 Unauthorized
         if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
           localStorage.removeItem('access_token');
           navigate('/login');
@@ -80,20 +85,23 @@ export default function Dashboard() {
         setProfileLoading(false);
       }
 
-      // 2. Fetch Recommendations - GET /api/v1/jobs/recommendations?cv_id={cv_id}
-      // Ambil cv_id langsung dari CV archives (backend tidak selalu return cv_id di analysis detail)
+      // 2. Fetch Archives & Recommendations
       try {
-        // Ambil CV archives untuk dapat cv_id
         const archivesResult = await fetchCVArchives(token);
-        const archives = archivesResult?.data || [];
+        const archivesData = archivesResult?.data || [];
+        setArchives(archivesData);
 
-        // Cari CV terakhir dengan status 'completed', atau gunakan yang paling baru
-        const latestCv = archives.find(cv => cv.status === 'completed') || archives[0];
+        // Simpan CV terakhir untuk StatsCards
+        setLatestCv(archivesData[0] || null);
 
-        if (latestCv?.id) {
-          const recs = await fetchJobRecommendations(token, latestCv.id);
+        // Cari CV dengan status completed atau yang terbaru untuk rekomendasi
+        const latestCvForRecs = archivesData.find(cv => cv.status === 'completed') || archivesData[0];
+
+        if (latestCvForRecs?.id) {
+          const recs = await fetchJobRecommendations(token, latestCvForRecs.id);
           const recsData = Array.isArray(recs) ? recs : [];
-          setJobRecommendations(recsData.slice(0, 6)); // Ambil max 6 untuk preview
+          const sortedRecs = recsData.sort((a, b) => (b.match_score || 0) - (a.match_score || 0));
+          setJobRecommendations(sortedRecs.slice(0, 20));
         } else {
           setJobRecommendations([]);
         }
@@ -103,7 +111,7 @@ export default function Dashboard() {
         setJobsLoading(false);
       }
 
-      // 3. Fetch History - GET /api/v1/analysis/history
+      // 3. Fetch History
       try {
         const historyResult = await fetchAnalysisHistory(token, 1, 5);
         const historyData = historyResult?.data || [];
@@ -121,7 +129,6 @@ export default function Dashboard() {
 
   // Calculate values
   const profileCompleteness = getProfileCompleteness(profile);
-  const latestScore = history[0]?.match_score || 0;
 
   // Get user greeting
   const getGreeting = () => {
@@ -187,11 +194,8 @@ export default function Dashboard() {
       {/* STATS CARDS */}
       <StatsCards
         profileCompleteness={profileCompleteness}
-        latestScore={latestScore}
         jobCount={jobRecommendations.length}
-        historyCount={totalAnalysis}
-        jobsLoading={jobsLoading}
-        historyLoading={historyLoading}
+        archives={archives}
         onNavigate={(path) => navigate(path)}
       />
 
