@@ -4,14 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiPlusCircle, FiFileText, FiZap, FiCheckCircle, FiTarget } from 'react-icons/fi';
 import { BsStars } from 'react-icons/bs';
-import { fetchUserProfile, fetchJobRecommendations, fetchAnalysisHistory, fetchCVArchives } from '../../services/api';
+import { fetchUserProfile, fetchJobRecommendations, fetchCVArchives } from '../../services/api';
 import Swal from 'sweetalert2';
 
 // Components
 import StatsCards from './components/StatsCards';
 import RecommendationsList from './components/RecommendationsList';
 import ProfileWidget from './components/ProfileWidget';
-import HistoryWidget from './components/HistoryWidget';
 
 /**
  * Dashboard Page
@@ -52,9 +51,6 @@ export default function Dashboard() {
   const [profileLoading, setProfileLoading] = useState(true);
   const [jobRecommendations, setJobRecommendations] = useState([]);
   const [jobsLoading, setJobsLoading] = useState(true);
-  const [history, setHistory] = useState([]);
-  const [historyLoading, setHistoryLoading] = useState(true);
-  const [totalAnalysis, setTotalAnalysis] = useState(0);
   const [latestCv, setLatestCv] = useState(null);
   const [archives, setArchives] = useState([]);
 
@@ -69,7 +65,6 @@ export default function Dashboard() {
       // 1. Fetch Profile
       setProfileLoading(true);
       setJobsLoading(true);
-      setHistoryLoading(true);
 
       try {
         const profileData = await fetchUserProfile(token);
@@ -109,18 +104,6 @@ export default function Dashboard() {
         console.warn('Rekomendasi belum tersedia:', err.message);
       } finally {
         setJobsLoading(false);
-      }
-
-      // 3. Fetch History
-      try {
-        const historyResult = await fetchAnalysisHistory(token, 1, 5);
-        const historyData = historyResult?.data || [];
-        setHistory(Array.isArray(historyData) ? historyData : []);
-        setTotalAnalysis(historyResult?.meta?.total || 0);
-      } catch (err) {
-        console.error('Gagal memuat riwayat:', err);
-      } finally {
-        setHistoryLoading(false);
       }
     };
 
@@ -211,18 +194,11 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* RIGHT COLUMN: Profile & History */}
+        {/* RIGHT COLUMN: Profile */}
         <div className="lg:w-1/3 space-y-6">
           <ProfileWidget
             profileCompleteness={profileCompleteness}
             onNavigate={() => navigate('/pengaturan')}
-          />
-
-          <HistoryWidget
-            history={history}
-            loading={historyLoading}
-            onNavigate={(path) => navigate(path)}
-            onStartAnalysis={() => navigate('/analisis-baru')}
           />
 
           {/* Quick Tips */}

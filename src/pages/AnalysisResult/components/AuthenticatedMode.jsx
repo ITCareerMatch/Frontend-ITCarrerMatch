@@ -341,7 +341,7 @@ export default function AuthenticatedMode({ taskResult, viewState, onBackClick }
                 </div>
               </div>
               <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold">
-                {recommendedJobs.length}+ lowongan
+                {recommendedJobs.length} lowongan
               </span>
             </div>
 
@@ -350,17 +350,6 @@ export default function AuthenticatedMode({ taskResult, viewState, onBackClick }
                 <JobCard key={job.job_id || i} job={job} index={i} />
               ))}
             </div>
-
-            {recommendedJobs.length > 10 && (
-              <div className="p-6 pt-0">
-                <Link
-                  to="/lowongan"
-                  className="flex items-center justify-center gap-2 w-full py-3 bg-slate-50 text-slate-600 font-bold text-sm rounded-xl hover:bg-slate-100 transition-colors"
-                >
-                  Lihat Semua {recommendedJobs.length}+ Rekomendasi
-                </Link>
-              </div>
-            )}
           </motion.div>
         ) : (
           <motion.div

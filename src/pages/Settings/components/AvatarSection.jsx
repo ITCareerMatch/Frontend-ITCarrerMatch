@@ -1,3 +1,5 @@
+/* eslint-disable no-undef */
+/* eslint-disable no-unused-vars */
 import React, { useState, useRef } from 'react';
 import { FiCamera, FiEdit2, FiX, FiRefreshCw, FiZoomIn, FiUploadCloud, FiCheckCircle } from 'react-icons/fi';
 

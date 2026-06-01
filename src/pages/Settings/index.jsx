@@ -51,6 +51,25 @@ const FORMAT_DATE_DISPLAY = (dateString) => {
   }
 };
 
+// Helper: Format number to Indonesian Rupiah (e.g., 3000000 -> "Rp. 3.000.000,00")
+const formatToRupiah = (value) => {
+  if (!value && value !== 0) return '';
+  const num = parseInt(value, 10) || 0;
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
+};
+
+// Helper: Parse formatted Rupiah string back to number (e.g., "Rp. 3.000.000,00" -> 3000000)
+const parseRupiah = (formattedValue) => {
+  if (!formattedValue) return '';
+  const cleaned = formattedValue.replace(/[^0-9]/g, '');
+  return cleaned;
+};
+
 // Konfigurasi animasi seragam
 const fadeInUp = {
   hidden: { opacity: 0, y: 12 },
@@ -649,26 +668,32 @@ export default function Settings() {
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Ekspektasi Gaji Minimum (IDR)</label>
                 <input
-                  type="number"
+                  type="text"
                   name="min_salary_expect"
                   disabled={!editMode.profile}
-                  value={profileData.min_salary_expect || ''}
-                  onChange={handleChange}
+                  value={editMode.profile ? (profileData.min_salary_expect || '') : formatToRupiah(profileData.min_salary_expect)}
+                  onChange={(e) => {
+                    const raw = parseRupiah(e.target.value);
+                    setProfileData(prev => ({ ...prev, min_salary_expect: raw }));
+                  }}
                   className={getInputClass(editMode.profile)}
-                  placeholder="5000000"
+                  placeholder="5.000.000,00"
                 />
               </div>
 
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Ekspektasi Gaji Maksimum (IDR)</label>
                 <input
-                  type="number"
+                  type="text"
                   name="max_salary_expect"
                   disabled={!editMode.profile}
-                  value={profileData.max_salary_expect || ''}
-                  onChange={handleChange}
+                  value={editMode.profile ? (profileData.max_salary_expect || '') : formatToRupiah(profileData.max_salary_expect)}
+                  onChange={(e) => {
+                    const raw = parseRupiah(e.target.value);
+                    setProfileData(prev => ({ ...prev, max_salary_expect: raw }));
+                  }}
                   className={getInputClass(editMode.profile)}
-                  placeholder="15000000"
+                  placeholder="15.000.000,00"
                 />
               </div>
 
@@ -676,10 +701,6 @@ export default function Settings() {
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><FiCalendar size={14} /> Tanggal Bergabung</label>
                   <input type="text" disabled value={FORMAT_DATE_DISPLAY(profileData.created_at)} className={getInputClass(false)} />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><FiHash size={14} /> ID Akun</label>
-                  <input type="text" disabled value={profileData.id} className={`${getInputClass(false)} text-[11px] font-mono`} />
                 </div>
               </div>
             </div>
