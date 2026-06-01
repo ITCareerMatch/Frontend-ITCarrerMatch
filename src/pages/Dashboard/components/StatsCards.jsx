@@ -93,6 +93,7 @@ export default function StatsCards({ profileCompleteness, jobCount, archives, on
       label: 'Profil',
       value: `${profileCompleteness.score}%`,
       sub: 'Kelengkapan Profil',
+      description: 'Pastikan profil Anda lengkap untuk hasil optimal',
       icon: <BsPersonCheck size={18} />,
       accent: 'blue',
       progress: profileCompleteness.score,
@@ -102,6 +103,7 @@ export default function StatsCards({ profileCompleteness, jobCount, archives, on
       label: 'Lowongan',
       value: jobCount,
       sub: 'Rekomendasi AI',
+      description: 'Jelajahi lowongan yang cocok dengan skill Anda',
       icon: <FiBriefcase size={18} />,
       accent: 'purple',
       onClick: () => onNavigate('/lowongan'),
@@ -121,7 +123,7 @@ export default function StatsCards({ profileCompleteness, jobCount, archives, on
   };
 
   return (
-    <div className="grid grid-cols-3 gap-3 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
       {cards.map((card) => {
         const c = accentMap[card.accent];
         return (
@@ -153,6 +155,11 @@ export default function StatsCards({ profileCompleteness, jobCount, archives, on
                 {card.value}
               </p>
               <p className="text-[11px] text-slate-500 mt-0.5">{card.sub}</p>
+              {card.description && (
+                <p className="text-[16px] text-slate-400 mt-4 leading-tight">
+                  {card.description}
+                </p>
+              )}
             </div>
 
             {/* Progress profil */}
@@ -162,6 +169,17 @@ export default function StatsCards({ profileCompleteness, jobCount, archives, on
                   variants={fade}
                   className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full"
                   style={{ width: `${card.progress}%` }}
+                />
+              </div>
+            )}
+
+            {/* Progress rekomendasi */}
+            {card.label === 'Lowongan' && card.value > 0 && (
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-auto">
+                <motion.div
+                  variants={fade}
+                  className="h-full bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full"
+                  style={{ width: '100%' }}
                 />
               </div>
             )}
