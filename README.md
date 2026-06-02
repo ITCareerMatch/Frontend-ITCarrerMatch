@@ -72,45 +72,50 @@ Membangun platform AI-powered job matching yang membantu求职者 (pencari kerja
 ## 📁 Struktur Direktori
 
 ```
-fe-itcareermatch/
+Frontend-ITCareerMatch/
 ├── public/                      # Asset statis
 │   └── images/                  # Gambar/logo
+│   └── profile/                 # Gambar Profile Tim
 ├── src/
 │   ├── components/              # Komponen reusable
-│   │   ├── ui/                  # Komponen UI (Button, Card, dll)
+│   │   ├── features/            # Komponen UI (Card)
+│   │   ├── ui/                  # Komponen UI (Button, Floating Chatbot, dll)
 │   │   └── layout/              # Layout components (Navbar, Sidebar, dll)
 │   ├── pages/                   # Halaman utama
 │   │   ├── LandingPage/         # Landing page
-│   │   ├── Login/               # Halaman login
-│   │   ├── Register/            # Halaman registrasi
+│   │   ├── Auth/                # Halaman login & Register
+│   │   ├── About/               # Halaman tentang aplikasi
 │   │   ├── Dashboard/           # Dashboard user
-│   │   ├── Jobs/                # Daftar lowongan
+│   │   ├── DashboardJobs/       # Daftar lowongan di dashboard
+│   │   ├── Joblist/             # Daftar lowongan di landingpage
 │   │   ├── JobDetail/           # Detail lowongan
 │   │   ├── NewAnalysis/         # Analisis CV baru
+│   │   ├── PreloginFlow/        # Analisis CV for guest user
 │   │   ├── AnalysisResult/      # Hasil analisis
 │   │   ├── AnalysisHistory/     # Riwayat analisis
 │   │   ├── Settings/            # Pengaturan profil
 │   │   ├── CvEditor/            # Editor CV (*dalam pengembangan*)
-│   │   └── Chatbot/             # Halaman chatbot
 │   ├── services/                # Service layer API
 │   │   └── api.js               # Konfigurasi API endpoints
+│   │   └── cvStorage.js         # Tempat menyimpan data cv local
 │   ├── lib/                     # Library & konfigurasi
 │   │   └── supabase.js          # Konfigurasi Supabase client
 │   ├── routes/                  # Routing configuration
 │   │   └── AppRoutes.jsx        # Definisi route & protected routes
-│   ├── hooks/                   # Custom React hooks
-│   ├── utils/                   # Utility functions
-│   ├── App.jsx                  # Root component
+│   ├── layout/
+│   │   └── Dashlayout.jsx       # Layout untuk Dashboard
+│   ├── context/
 │   ├── main.jsx                 # Entry point
 │   └── index.css                # Global styles (Tailwind)
 ├── .env                         # Environment variables (gitignored)
 ├── .env.example                 # Template environment variables
-├── .gitignore                  # Git ignore rules
+├── .gitignore                   # Git ignore rules
 ├── index.html                   # HTML entry point
 ├── package.json                 # Dependencies & scripts
+├── package.lock.json
 ├── vite.config.js               # Vite configuration
-├── tailwind.config.js           # Tailwind configuration
-├── postcss.config.js            # PostCSS configuration
+└── vercel.json                  # vercel configuration
+├── eslit.config.js              # eslint configuration
 └── README.md                    # Dokumentasi project
 ```
 

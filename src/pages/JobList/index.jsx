@@ -492,7 +492,7 @@ export default function JobList() {
                     <div className="flex flex-wrap gap-2 mb-4">
                       {/* Gaji Raw */}
                       <span className="bg-emerald-500/5 text-emerald-700 text-[11px] font-bold px-3 py-1.5 rounded-xl border border-emerald-500/10 flex items-center gap-1.5 shadow-sm">
-                        <FiDollarSign size={13} className="text-emerald-500 shrink-0" />
+                      <span className="text-emerald-500 shrink-0" />
                         {job?.salary_raw || 'Gaji Kompetitif'}
                       </span>
                       {/* Tipe Pekerjaan */}
@@ -542,11 +542,6 @@ export default function JobList() {
                             <BsStars className="text-purple-500" /> AI Matcher Tersedia
                           </span>
                         )}
-                      </div>
-                      
-                      {/* TANGGAL RILIS LOWONGAN */}
-                      <div className="flex items-center gap-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                        <span className="flex items-center gap-1.5"><FiClock /> {job?.created_at ? new Date(job.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</span>
                       </div>
                     </div>
                   </motion.div>

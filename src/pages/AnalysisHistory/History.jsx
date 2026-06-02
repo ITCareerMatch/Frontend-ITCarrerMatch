@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiTarget, FiFileText, FiChevronLeft, FiChevronRight, FiArrowRight } from 'react-icons/fi';
+import { FiTarget, FiFileText, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { fadeInUp, staggerContainer } from './helpers';
 
 /**
@@ -96,10 +96,6 @@ export default function History({
 }) {
   const navigate = useNavigate();
 
-  const handleViewDetail = (analysisId) => {
-    navigate(`/riwayat/${analysisId}`);
-  };
-
   if (history.length === 0) {
     return (
       <div className="bg-white rounded-3xl border border-slate-200/60 p-12 text-center">
@@ -161,17 +157,9 @@ export default function History({
                 </div>
               </div>
 
-              {/* Right side - Score Ring & Button */}
+              {/* Right side - Score Ring */}
               <div className="flex flex-col sm:flex-row items-end sm:items-center gap-5 shrink-0">
                 <MiniScoreRing score={score} size={52} strokeWidth={4} />
-
-                <button
-                  onClick={() => handleViewDetail(item.id)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold transition-colors group-hover:bg-blue-600 cursor-pointer"
-                >
-                  Lihat Detail
-                  <FiArrowRight size={14} />
-                </button>
               </div>
             </div>
           </motion.div>

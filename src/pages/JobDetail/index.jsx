@@ -57,6 +57,7 @@ export default function JobDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [analysisData, setAnalysisData] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [analysisLoading, setAnalysisLoading] = useState(false);
 
   useEffect(() => {
@@ -305,20 +306,9 @@ export default function JobDetail() {
             <p className="text-xs sm:text-sm font-extrabold text-slate-900 leading-tight capitalize truncate">{job?.city || 'Remote'}</p>
           </motion.div>
         </motion.div>
-
-        {/* --- ANALISIS CV CARD --- */}
-        <motion.div variants={fadeInUp} className="mb-8">
-          {analysisLoading ? (
-            <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-slate-100 rounded-xl animate-pulse" />
-                <div className="flex-1">
-                  <div className="h-4 bg-slate-100 rounded w-1/3 mb-2 animate-pulse" />
-                  <div className="h-3 bg-slate-100 rounded w-1/4 animate-pulse" />
-                </div>
-              </div>
-            </div>
-          ) : analysisData ? (
+{/* --- ANALISIS CV CARD (Hanya tampil jika ada data analisis) --- */}
+        {analysisData && (
+          <motion.div variants={fadeInUp} className="mb-8">
             <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 rounded-2xl p-6 relative overflow-hidden">
               {/* Background decoration */}
               <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full blur-3xl" />
@@ -420,78 +410,8 @@ export default function JobDetail() {
                 )}
               </div>
             </div>
-          ) : (
-            <div className="bg-gray-100 rounded-2xl border border-slate-200 p-6 text-center relative overflow-hidden">
-              {/* Lock icon decoration */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-slate-200/50 rounded-full blur-2xl" />
-
-              <div className="relative z-10">
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: 'spring', stiffness: 200 }}
-                  className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm"
-                >
-                  <FiTarget size={28} className="text-slate-400" />
-                </motion.div>
-
-                {isLoggedIn ? (
-                  <>
-                    <h3 className="font-bold text-slate-700 text-sm mb-2">Skor Kecocokan Tidak Ada</h3>
-                    <p className="text-xs text-slate-500 mb-4 max-w-sm mx-auto leading-relaxed">
-                      Silakan cek skor Anda untuk melihat skor kecocokan CV terhadap lowongan ini
-                    </p>
-
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className="flex items-center justify-center"
-                    >
-                      <button
-                        onClick={() => navigate('/analisis-baru')}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-md cursor-pointer border border-blue-700/50"
-                      >
-                        <FiTarget size={14} />
-                        Analisis CV Sekarang
-                      </button>
-                    </motion.div>
-                  </>
-                ) : (
-                  <>
-                    <h3 className="font-bold text-slate-700 text-sm mb-2">Skor Kecocokan Tertutup</h3>
-                    <p className="text-xs text-slate-500 mb-4 max-w-sm mx-auto leading-relaxed">
-                      Silakan login dan cek skor Anda untuk melihat skor kecocokan CV terhadap lowongan ini
-                    </p>
-
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className="flex flex-col sm:flex-row items-center justify-center gap-3"
-                    >
-                      <button
-                        onClick={() => navigate('/login')}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-md cursor-pointer border border-blue-700/50"
-                      >
-                        <FiUnlock size={14} />
-                        Login Sekarang
-                      </button>
-                      <button
-                        onClick={() => navigate('/cek-skor')}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-colors shadow-sm border border-slate-200 cursor-pointer"
-                      >
-                        <FiTarget size={14} />
-                        Cek Skor
-                      </button>
-                    </motion.div>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-        </motion.div>
-
+          </motion.div>
+        )}
         {/* --- DUA KOLOM SPESIFIKASI --- */}
         <div className="flex flex-col lg:flex-row gap-8 text-left">
           

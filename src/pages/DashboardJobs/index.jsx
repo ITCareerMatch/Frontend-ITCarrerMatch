@@ -295,7 +295,7 @@ export default function DashboardJobs() {
           </div>
           <button
             onClick={() => handleCheckboxFilter('work_system', 'remote')}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold shrink-0 border transition-all ${
+            className={`px-4 py-1.5 rounded-full text-xs font-bold shrink-0 border transition-all cursor-pointer ${
               filters.work_system === 'remote'
                 ? 'bg-blue-500/5 text-blue-600 border-blue-500/20 font-extrabold'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -305,7 +305,7 @@ export default function DashboardJobs() {
           </button>
           <button
             onClick={() => handleCheckboxFilter('education_level', 's1')}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold shrink-0 border transition-all ${
+            className={`px-4 py-1.5 rounded-full text-xs font-bold shrink-0 border transition-all cursor-pointer ${
               filters.education_level === 's1'
                 ? 'bg-blue-500/5 text-blue-600 border-blue-500/20 font-extrabold'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -315,7 +315,7 @@ export default function DashboardJobs() {
           </button>
           <button
             onClick={() => handleCheckboxFilter('education_level', 'sma')}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold shrink-0 border transition-all ${
+            className={`px-4 py-1.5 rounded-full text-xs font-bold shrink-0 border transition-all cursor-pointer ${
               filters.education_level === 'sma'
                 ? 'bg-blue-500/5 text-blue-600 border-blue-500/20 font-extrabold'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -563,7 +563,7 @@ export default function DashboardJobs() {
                   {/* DATA PILAR PENTING */}
                   <div className="flex flex-wrap gap-2 mb-5 mt-1">
                     <span className="bg-emerald-500/5 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-lg border border-emerald-500/10 flex items-center gap-1.5 shadow-sm">
-                      <FiDollarSign size={13} className="text-emerald-500 shrink-0" />
+                      <span className="text-emerald-500 shrink-0" />
                       {job.salary_raw || 'Gaji Kompetitif'}
                     </span>
                     {job.job_type && (
@@ -604,11 +604,6 @@ export default function DashboardJobs() {
                       <span className="font-bold flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/5 text-blue-600 border border-blue-500/10 shadow-sm">
                         <BsStars /> Analisis Kecocokan CV Tersedia
                       </span>
-                    </div>
-                    
-                    {/* TANGGAL RILIS LOWONGAN */}
-                    <div className="flex items-center gap-3 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                      <span className="flex items-center gap-1.5"><FiClock /> {job.created_at ? new Date(job.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}</span>
                     </div>
                   </div>
                 </motion.div>
