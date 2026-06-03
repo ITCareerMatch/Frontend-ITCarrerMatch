@@ -233,23 +233,23 @@ export default function LandingPage() {
       </section>
 
       {/* --- STATS SECTION --- */}
-      <section className="py-12 border-y border-slate-200/60 bg-slate-50/50">
-        <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-2 md:grid-cols-4 gap-8">
+      <section className="py-8 sm:py-12 border-y border-slate-200/60 bg-slate-50/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
           {[
-            { icon: <FiFileText size={22} />, val: "10.842+", label: "CV Dianalisis", color: "text-blue-600 bg-blue-500/10" },
-            { icon: <FiTarget size={22} />, val: "95%", label: "Akurasi AI", color: "text-emerald-600 bg-emerald-500/10" },
-            { icon: <FiTrendingUp size={22} />, val: "3,2x", label: "Lebih Banyak Interview", color: "text-purple-600 bg-purple-500/10" },
-            { icon: <FiClock size={22} />, val: "< 10 dtk", label: "Waktu Analisis", color: "text-amber-600 bg-amber-500/10" }
+            { icon: <FiFileText size={18} />, val: "10.842+", label: "CV Dianalisis", color: "text-blue-600 bg-blue-500/10" },
+            { icon: <FiTarget size={18} />, val: "95%", label: "Akurasi AI", color: "text-emerald-600 bg-emerald-500/10" },
+            { icon: <FiTrendingUp size={18} />, val: "3,2x", label: "Interview", color: "text-purple-600 bg-purple-500/10" },
+            { icon: <FiClock size={18} />, val: "< 10 dtk", label: "Analisis", color: "text-amber-600 bg-amber-500/10" }
           ].map((stat, i) => (
-            <motion.div 
+            <motion.div
               key={i}
               whileHover={{ y: -4 }}
-              className="bg-white/80 backdrop-blur-md border border-slate-200/60 p-6 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-4 text-left"
+              className="bg-white/80 backdrop-blur-md border border-slate-200/60 p-4 sm:p-5 rounded-xl sm:rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 flex items-center gap-3 text-left"
             >
-              <div className={`p-3 rounded-2xl ${stat.color} shrink-0`}>{stat.icon}</div>
-              <div>
-                <h3 className="text-2xl font-extrabold text-slate-900 leading-none tracking-tight">{stat.val}</h3>
-                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-1">{stat.label}</p>
+              <div className={`p-2 sm:p-2.5 rounded-lg sm:rounded-xl ${stat.color} shrink-0`}>{stat.icon}</div>
+              <div className="min-w-0">
+                <h3 className="text-lg sm:text-xl font-extrabold text-slate-900 leading-none tracking-tight">{stat.val}</h3>
+                <p className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">{stat.label}</p>
               </div>
             </motion.div>
           ))}

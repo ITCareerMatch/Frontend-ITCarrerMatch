@@ -54,7 +54,7 @@ function CvListItem({ cv }) {
       {/* Info */}
       <div className="flex-1 min-w-0">
         <p className="text-xs font-semibold text-slate-700 truncate leading-tight">
-          {cv.file_name || 'Tanpa Nama'}
+          {cv.file_name || 'CV Document'}
         </p>
         <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
           <FiClock size={9} />
@@ -109,7 +109,7 @@ export default function StatsCards({ profileCompleteness, jobCount, archives, on
       onClick: () => onNavigate('/lowongan'),
     },
     {
-      label: 'CV Archives',
+      label: 'Arsip CV',
       icon: <FiFileText size={18} />,
       accent: 'amber',
       onClick: () => onNavigate('/riwayat?tab=archives'),
@@ -185,7 +185,7 @@ export default function StatsCards({ profileCompleteness, jobCount, archives, on
             )}
 
             {/* List CV */}
-            {card.label === 'CV Archives' && (
+            {card.label === 'Arsip CV' && (
               <div className="mt-1">
                 {top2.length > 0 ? (
                   <div className="border-t border-slate-100 pt-2 space-y-0">

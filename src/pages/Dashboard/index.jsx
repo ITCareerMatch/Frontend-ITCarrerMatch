@@ -10,7 +10,6 @@ import Swal from 'sweetalert2';
 // Components
 import StatsCards from './components/StatsCards';
 import RecommendationsList from './components/RecommendationsList';
-import ProfileWidget from './components/ProfileWidget';
 
 /**
  * Dashboard Page
@@ -158,14 +157,14 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={() => navigate('/analisis-baru')}
-              className="flex items-center justify-center gap-2 bg-white text-slate-900 font-bold px-6 py-3.5 rounded-2xl hover:bg-slate-100 transition-all shadow-lg text-sm"
+              className="flex items-center justify-center gap-2 bg-white text-slate-900 font-bold px-6 py-3.5 rounded-2xl hover:bg-slate-100 transition-all shadow-lg text-sm cursor-pointer"
             >
               <FiPlusCircle size={18} />
               Analisis CV Baru
             </button>
             <button
               onClick={() => navigate('/riwayat')}
-              className="flex items-center justify-center gap-2 bg-white/10 text-white font-bold px-6 py-3.5 rounded-2xl hover:bg-white/20 transition-all backdrop-blur-sm border border-white/10 text-sm"
+              className="flex items-center justify-center gap-2 bg-white/10 text-white font-bold px-6 py-3.5 rounded-2xl hover:bg-white/20 transition-all backdrop-blur-sm border border-white/10 text-sm cursor-pointer"
             >
               <FiFileText size={18} />
               Lihat Riwayat
@@ -184,52 +183,14 @@ export default function Dashboard() {
 
       <div className="flex flex-col lg:flex-row gap-8">
         {/* LEFT COLUMN: Jobs & Actions */}
-        <div className="lg:w-2/3 space-y-6">
+        <div className="lg:w-1/1 space-y-6">
           <RecommendationsList
             jobs={jobRecommendations}
             loading={jobsLoading}
             onNavigate={(path) => navigate(path)}
-            onViewAll={() => navigate('/daftar-lowongan')}
+            onViewAll={() => navigate('/riwayat')}
             onAnalyze={() => navigate('/analisis-baru')}
           />
-        </div>
-
-        {/* RIGHT COLUMN: Profile */}
-        <div className="lg:w-1/3 space-y-6">
-          <ProfileWidget
-            profileCompleteness={profileCompleteness}
-            onNavigate={() => navigate('/pengaturan')}
-          />
-
-          {/* Quick Tips */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 rounded-3xl p-6 text-white relative overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-4">
-                <BsStars className="text-amber-400" />
-                <h3 className="font-bold">Tips AI</h3>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3">
-                  <FiZap className="text-blue-400 shrink-0 mt-0.5" />
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    Gunakan kata kunci yang persis sama dengan deskripsi lowongan untuk meningkatkan skor ATS.
-                  </p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <FiCheckCircle className="text-emerald-400 shrink-0 mt-0.5" />
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    Format PDF satu kolom lebih mudah diparse oleh sistem kami.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
         </div>
       </div>
     </div>

@@ -92,7 +92,7 @@ export default function RecommendationsList({
       className="bg-white rounded-3xl border border-slate-200/60 shadow-sm overflow-hidden"
     >
       {/* Header */}
-      <div className="p-4 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div className="p-4 sm:p-6 border-b border-slate-100 flex sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center text-white shrink-0">
             <BsLightningChargeFill size={18} className="sm:w-5 sm:h-5" />
@@ -106,7 +106,7 @@ export default function RecommendationsList({
           onClick={onViewAll}
           className="flex items-center gap-1 text-xs sm:text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer whitespace-nowrap"
         >
-          Lihat Semua
+          Lihat Semua Analysis
           <FiChevronRight size={14} className="sm:w-4 sm:h-4" />
         </button>
       </div>
@@ -135,7 +135,7 @@ export default function RecommendationsList({
             </button>
           </div>
         ) : (
-          <div className="space-y-3 sm:space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             {jobs.map((job, idx) => (
               <motion.div
                 key={job.job_id || idx}
@@ -158,16 +158,6 @@ export default function RecommendationsList({
                   <div className="flex flex-wrap items-center gap-1.5 sm:gap-3 mt-1.5 text-[10px] sm:text-xs">
                     {job.location && (
                       <span className="text-slate-400 truncate max-w-[80px] sm:max-w-none">{job.location}</span>
-                    )}
-                    {job.skill_match_count > 0 && (
-                      <span className="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded whitespace-nowrap">
-                        {job.skill_match_count} skill
-                      </span>
-                    )}
-                    {job.skill_gap_count > 0 && (
-                      <span className="bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded whitespace-nowrap">
-                        {job.skill_gap_count} perlu dikembangkan
-                      </span>
                     )}
                   </div>
                 </div>

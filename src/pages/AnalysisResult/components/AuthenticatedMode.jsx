@@ -99,24 +99,6 @@ function JobCard({ job, index }) {
           {job.job_title}
         </h4>
         <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5">{job.company}</p>
-
-        {/* Skill counts - compact on mobile */}
-        <div className="flex items-center gap-2 sm:gap-3 mt-1.5">
-          {job.skill_match_count > 0 && (
-            <span className="text-[10px] sm:text-xs text-emerald-600 flex items-center gap-1">
-              <FiCheckCircle size={10} className="sm:w-3 sm:h-3" />
-              <span className="hidden sm:inline">skill cocok</span>
-              <span className="sm:hidden">{job.skill_match_count}</span>
-            </span>
-          )}
-          {job.skill_gap_count > 0 && (
-            <span className="text-[10px] sm:text-xs text-rose-600 flex items-center gap-1">
-              <FiTarget size={10} className="sm:w-3 sm:h-3" />
-              <span className="hidden sm:inline">perlu dikembangkan</span>
-              <span className="sm:hidden">{job.skill_gap_count}</span>
-            </span>
-          )}
-        </div>
       </div>
 
       {/* Arrow icon - hidden on very small screens */}
@@ -142,11 +124,7 @@ export default function AuthenticatedMode({ taskResult, viewState, onBackClick }
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
 
   // Extract data from taskResult polling response
-  const message = taskResult?.message || 'Analisis berhasil.';
   const cvId = taskResult?.cvId || null; // camelCase from backend
-  const userAge = taskResult?.user_age || null;
-  const jobsFiltered = taskResult?.jobs_filtered || 0;
-  const skillsUpdated = taskResult?.skills_updated || 0;
   const recommendationsSaved = taskResult?.recommendations_saved || 0;
 
   // Fetch job recommendations based on cv_id
@@ -173,7 +151,7 @@ export default function AuthenticatedMode({ taskResult, viewState, onBackClick }
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 font-sans text-slate-800 pb-20">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/50 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-4 py-5 sm:py-5 flex items-center justify-between gap-4">
           <motion.button
             onClick={onBackClick}
             initial={{ x: -20, opacity: 0 }}
@@ -181,7 +159,7 @@ export default function AuthenticatedMode({ taskResult, viewState, onBackClick }
             className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
           >
             <FiArrowLeft size={16} className="sm:w-[18px] sm:h-[18px]" />
-            <span className="hidden sm:inline">Kembali</span>
+            <span>Kembali</span>
           </motion.button>
 
           <motion.div
@@ -194,13 +172,13 @@ export default function AuthenticatedMode({ taskResult, viewState, onBackClick }
               to="/analisis-baru"
               className="bg-blue-50 text-blue-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[10px] sm:text-xs font-bold hover:bg-blue-100 transition-colors cursor-pointer border border-blue-100 whitespace-nowrap"
             >
-              + Baru
+              + Analisis Baru
             </Link>
             <Link
               to="/dashboard"
               className="bg-slate-950 text-white px-3 py-1.5 sm:px-5 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-bold hover:bg-slate-800 transition-colors whitespace-nowrap"
             >
-              Dashboard
+              Ke Dashboard
             </Link>
           </motion.div>
         </div>
@@ -248,68 +226,6 @@ export default function AuthenticatedMode({ taskResult, viewState, onBackClick }
           >
             CV Anda telah dianalisis dan {recommendationsSaved} rekomendasi pekerjaan sudah tersedia.
           </motion.p>
-
-          {/* Message Summary */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="text-slate-600 max-w-2xl mx-auto leading-relaxed bg-white/60 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-slate-200/50 text-xs sm:text-sm mx-4 sm:mx-0"
-          >
-            {message}
-          </motion.div>
-        </motion.div>
-
-        {/* Stats Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-12"
-        >
-          <motion.div
-            whileHover={{ scale: 1.02, y: -2 }}
-            className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 p-4 sm:p-5 rounded-2xl border border-emerald-200/40 text-center"
-          >
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-500 text-white rounded-xl flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-lg shadow-emerald-500/20">
-              <FiCheckCircle size={20} className="sm:w-6 sm:h-6" />
-            </div>
-            <div className="text-2xl sm:text-3xl font-black text-emerald-700 mb-0.5 sm:mb-1">{skillsUpdated}</div>
-            <div className="text-[10px] sm:text-xs text-emerald-600 font-bold uppercase tracking-wider">Skill Updated</div>
-          </motion.div>
-
-          <motion.div
-            whileHover={{ scale: 1.02, y: -2 }}
-            className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-4 sm:p-5 rounded-2xl border border-blue-200/40 text-center"
-          >
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 text-white rounded-xl flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-lg shadow-blue-500/20">
-              <FiUsers size={20} className="sm:w-6 sm:h-6" />
-            </div>
-            <div className="text-2xl sm:text-3xl font-black text-blue-700 mb-0.5 sm:mb-1">{jobsFiltered}</div>
-            <div className="text-[10px] sm:text-xs text-blue-600 font-bold uppercase tracking-wider">Lowongan Difilter</div>
-          </motion.div>
-
-          <motion.div
-            whileHover={{ scale: 1.02, y: -2 }}
-            className="bg-gradient-to-br from-amber-50 to-amber-100/50 p-4 sm:p-5 rounded-2xl border border-amber-200/40 text-center"
-          >
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-amber-500 text-white rounded-xl flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-lg shadow-amber-500/20">
-              <FiAward size={20} className="sm:w-6 sm:h-6" />
-            </div>
-            <div className="text-2xl sm:text-3xl font-black text-amber-700 mb-0.5 sm:mb-1">{recommendationsSaved}</div>
-            <div className="text-[10px] sm:text-xs text-amber-600 font-bold uppercase tracking-wider">Rekomendasi</div>
-          </motion.div>
-
-          <motion.div
-            whileHover={{ scale: 1.02, y: -2 }}
-            className="bg-gradient-to-br from-purple-50 to-purple-100/50 p-4 sm:p-5 rounded-2xl border border-purple-200/40 text-center"
-          >
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-500 text-white rounded-xl flex items-center justify-center mx-auto mb-2 sm:mb-3 shadow-lg shadow-purple-500/20">
-              <FiCalendar size={20} className="sm:w-6 sm:h-6" />
-            </div>
-            <div className="text-2xl sm:text-3xl font-black text-purple-700 mb-0.5 sm:mb-1">{userAge || '-'}</div>
-            <div className="text-[10px] sm:text-xs text-purple-600 font-bold uppercase tracking-wider">Usia</div>
-          </motion.div>
         </motion.div>
 
         {/* Recommendations Section */}
@@ -339,12 +255,12 @@ export default function AuthenticatedMode({ taskResult, viewState, onBackClick }
                   <FiBriefcase size={20} className="sm:w-[22px] sm:h-[22px]" />
                 </motion.div>
                 <div>
-                  <h3 className="font-bold text-slate-900 text-sm sm:text-lg">Rekomendasi Karir</h3>
+                  <h3 className="font-bold text-slate-900 text-sm sm:text-lg">Rekomendasi Kerja</h3>
                   <p className="text-[10px] sm:text-xs text-slate-500">Lowongan paling cocok untuk Anda</p>
                 </div>
               </div>
               <span className="px-2.5 py-1 sm:px-3 sm:py-1 bg-blue-50 text-blue-600 rounded-xl text-[10px] sm:text-xs font-bold whitespace-nowrap">
-                {recommendedJobs.length} lowongan
+                {recommendedJobs.length} lowongan tersedia
               </span>
             </div>
 

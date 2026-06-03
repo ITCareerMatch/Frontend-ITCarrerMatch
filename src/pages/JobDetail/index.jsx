@@ -45,13 +45,18 @@ export default function JobDetail() {
   const navigate = useNavigate();
   const params = useParams();
   const location = useLocation();
-  
+
   // DETEKSI ID OTOMATIS
   const jobId = params.id || params.jobId || params.job_id || Object.values(params)[0];
-  
+
   // Cek apakah diakses dari dalam dasbor secara aman melalui URL
   const isDashboard = location.pathname.startsWith('/dashboard');
   const isLoggedIn = !!localStorage.getItem('access_token');
+
+  // Scroll ke atas saat halaman dimuat
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -230,7 +235,7 @@ export default function JobDetail() {
               onClick={() => navigate(isLoggedIn ? '/dashboard' : '/login')} 
               className="bg-blue-50 text-blue-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-100 transition-colors cursor-pointer border border-blue-100 shadow-sm whitespace-nowrap"
             >
-              {isLoggedIn ? 'Dashboard' : 'Masuk'}
+              {isLoggedIn ? 'Ke Dashboard' : 'Masuk'}
             </button>
           </div>
         </header>

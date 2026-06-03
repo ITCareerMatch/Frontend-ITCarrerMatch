@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   claimCVSession,
@@ -15,19 +15,9 @@ import AuthenticatedMode from './components/AuthenticatedMode';
 /**
  * AnalysisResult Page
  *
- * Alur aplikasi:
- *
- * FLOW A: Guest Preview (Tanpa Login)
- *   /cek-skor → POST /cv/preview → Simpan temp_token → navigate /analisis-result?mode=guest
- *   → GuestMode (locked UI dengan blur) → User login/register
- *
- * FLOW B: Guest → Login → Claim Session
- *   GuestMode → Login → POST /cv/claim → task_id → Poll /cv/status/{task_id}
- *   → AuthenticatedMode (unlocked dengan data asli)
- *
- * FLOW C: User Login → Analisis Baru
- *   /analisis-baru → POST /cv/analyze → task_id → navigate /analisis-result?mode=authenticated&taskId={task_id}
- *   → Poll /cv/status/{task_id} → AuthenticatedMode (unlocked)
+ * OPTIMASI: Hasil analisis disimpan di sessionStorage selama 30 menit.
+ * Saat user kembali ke halaman (dalam 30 menit), hasil langsung ditampilkan tanpa polling.
+ * Polling hanya terjadi saat pertama kali halaman dimuat atau saat upload CV baru.
  */
 
 // ===============================
@@ -50,15 +40,16 @@ export default function AnalysisResult() {
 
   // Refs
   const pollingRef = useRef(null);
-  const hasInitializedRef = useRef(false);
+  const initRef = useRef(false);
 
-  // Check for saved result synchronously on mount (before any state updates)
-  // This prevents the loading/polling flicker when navigating back
-  const initialSavedResult = useMemo(() => CVStorage.getResult(), []);
+  // CEK HASIL TERSIMPAN SEBELUM RENDER
+  // Jika ada hasil (belum expired 30 menit), langsung tampilkan tanpa polling
+  const savedResult = CVStorage.getResult();
+  const hasSavedResult = savedResult !== null;
 
-  // UI States - Initialize with saved result if available to prevent loading flicker
-  const [viewState, setViewState] = useState(initialSavedResult ? 'result' : 'loading');
-  const [taskResult, setTaskResult] = useState(initialSavedResult);
+  // UI States - Jika ada saved result,langsung set ke 'result'
+  const [viewState, setViewState] = useState(hasSavedResult ? 'result' : 'loading');
+  const [taskResult, setTaskResult] = useState(savedResult);
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState(null);
 
@@ -69,21 +60,27 @@ export default function AnalysisResult() {
     };
   }, []);
 
-  // If we have initial saved result, clear it and use it immediately
+  // MARKER: Jika ada saved result, jangan pernah poll
+  // Ini mencegah polling terjadi meskipun ada perubahan state lain
   useEffect(() => {
-    if (initialSavedResult && !hasInitializedRef.current) {
-      hasInitializedRef.current = true;
-      console.log('[Init] Using pre-loaded saved result');
-      setTaskResult(initialSavedResult);
+    if (hasSavedResult && !initRef.current) {
+      initRef.current = true;
+      console.log('[Result] Using saved result (30 min cache)');
+      setTaskResult(savedResult);
       setViewState('result');
-      CVStorage.clearResult();
     }
-  }, [initialSavedResult]);
+  }, [hasSavedResult, savedResult]);
 
   // ===============================
   // POLLING FUNCTION
   // ===============================
   const pollTask = useCallback(async (taskId) => {
+    // JANGAN POLL JIKA SUDAH PUNYA HASIL
+    if (CVStorage.getResult()) {
+      console.log('[Poll] Aborted - result already exists');
+      return;
+    }
+
     let attempts = 0;
     const MAX = 30;
 
@@ -91,6 +88,15 @@ export default function AnalysisResult() {
     setCurrentStep(0);
 
     const poll = async () => {
+      // Double-check sebelum setiap polling attempt
+      const currentSaved = CVStorage.getResult();
+      if (currentSaved) {
+        console.log('[Poll] Aborted mid-poll - result appeared');
+        setTaskResult(currentSaved);
+        setViewState('result');
+        return;
+      }
+
       if (attempts >= MAX) {
         setViewState('failed');
         setError('Waktu tunggu habis. Silakan coba lagi.');
@@ -103,9 +109,10 @@ export default function AnalysisResult() {
         setCurrentStep(Math.min(attempts, 4));
 
         if (status === 'completed') {
-          setTaskResult(result?.result || null);
-          // Save result to storage for later access (e.g., when navigating back from job detail)
-          CVStorage.saveResult(result?.result || null);
+          const finalResult = result?.result || null;
+          setTaskResult(finalResult);
+          // Save result to storage
+          CVStorage.saveResult(finalResult);
           CVStorage.clear(); // Clear session storage but keep result
           setViewState('result');
           return;
@@ -130,9 +137,15 @@ export default function AnalysisResult() {
   }, [token]);
 
   // ===============================
-  // CLAIM & POLL FUNCTION (FLOW B)
+  // CLAIM & POLL FUNCTION
   // ===============================
   const claimAndPoll = useCallback(async (tempToken) => {
+    // JANGAN CLAIM JIKA SUDAH PUNYA HASIL
+    if (CVStorage.getResult()) {
+      console.log('[Claim] Aborted - result already exists');
+      return;
+    }
+
     setViewState('claiming');
     setCurrentStep(0);
 
@@ -142,13 +155,12 @@ export default function AnalysisResult() {
       if (taskId) {
         CVStorage.clear();
         await pollTask(taskId);
-        // Update URL untuk bookmark
         window.history.replaceState(null, '', `/analisis-result?mode=authenticated&taskId=${taskId}`);
       } else {
         throw new Error('Server tidak mengembalikan task_id');
       }
     } catch (err) {
-      console.error('[claimAndPoll] Error:', err.message);
+      console.error('[Claim] Error:', err.message);
       setError(err.message);
       setViewState('failed');
     }
@@ -158,55 +170,57 @@ export default function AnalysisResult() {
   // MAIN LOADING EFFECT
   // ===============================
   useEffect(() => {
-    // Skip if we already have a result (either from initial load or from polling)
-    if (taskResult) {
-      console.log('[loadData] taskResult already exists, skipping...');
+    // ========================================
+    // BLOK UTAMA: JANGAN JALankan JIKA ADA HASIL
+    // ========================================
+    if (CVStorage.getResult()) {
+      console.log('[Load] Skipped - result already cached');
       return;
     }
 
-    // Skip if we already initialized from saved result
-    if (hasInitializedRef.current) {
-      console.log('[loadData] Already initialized from saved result, skipping...');
+    // Jika sudah diinisialisasi, skip
+    if (initRef.current) {
       return;
     }
 
     const loadData = async () => {
+      initRef.current = true;
+
+      // Double-check sebelum load
+      if (CVStorage.getResult()) {
+        console.log('[Load] Aborted after init check');
+        return;
+      }
+
       // Parse URL params
       const params = new URLSearchParams(location.search);
       const mode = params.get('mode');
       const taskIdParam = params.get('taskId');
       const tempTokenParam = params.get('tempToken');
 
-      // Skip jika viewState bukan 'loading' (sedang diproses)
-      // Ini mencegah overwrite state saat ada proses yang sedang berjalan
-      if (viewState !== 'loading') {
-        console.log('[loadData] viewState is', viewState, '- skipping...');
-        return;
-      }
-
       try {
-        // FLOW C: Authenticated NewAnalysis - langsung polling dengan taskId dari URL
+        // FLOW C: Authenticated NewAnalysis
         if (mode === 'authenticated' && taskIdParam && isLoggedIn) {
           await pollTask(taskIdParam);
           return;
         }
 
-        // FLOW B: Ada tempToken di URL dan user sudah login → langsung claim
+        // FLOW B: TempToken di URL + user login
         if (tempTokenParam && isLoggedIn) {
           await claimAndPoll(tempTokenParam);
           return;
         }
 
-        // Cek apakah ada guest session yang sudah di-claim di CVStorage
+        // Cek guest session di storage
         const guestSession = CVStorage.getGuestSession();
 
-        // FLOW B (legacy): Ada guest session di storage dan user sudah login → claim it
+        // FLOW B (legacy): Guest session + user login
         if (isLoggedIn && guestSession?.temp_token) {
           await claimAndPoll(guestSession.temp_token);
           return;
         }
 
-        // FLOW A: Guest sees locked preview (ada tempToken di URL atau di storage)
+        // FLOW A: Guest sees locked preview
         if (tempTokenParam || guestSession?.temp_token) {
           setViewState('guest_locked');
           return;
@@ -220,20 +234,20 @@ export default function AnalysisResult() {
         }
 
       } catch (err) {
-        console.error('loadData error:', err);
+        console.error('[Load] Error:', err.message);
         setError(err.message);
         setViewState('failed');
       }
     };
 
     loadData();
-  }, [token, location.search, isLoggedIn, navigate, pollTask, claimAndPoll, taskResult, viewState]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // DEPENDENCY KOSONG - hanya jalan sekali saat mount
 
   // ===============================
   // HANDLERS
   // ===============================
   const handleLoginClick = () => {
-    // Navigate ke login dengan tempToken di URL jika ada
     const params = new URLSearchParams(location.search);
     const tempToken = params.get('tempToken');
     if (tempToken) {
@@ -265,6 +279,17 @@ export default function AnalysisResult() {
   // ===============================
   // RENDER STATES
   // ===============================
+  // JIKA SUDAH PUNYA HASIL, LANGSUNG TAMPILKAN
+  if (viewState === 'result' && taskResult) {
+    return (
+      <AuthenticatedMode
+        taskResult={taskResult}
+        viewState={viewState}
+        onBackClick={handleBack}
+      />
+    );
+  }
+
   if (viewState === 'loading') {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center">
@@ -291,9 +316,7 @@ export default function AnalysisResult() {
     );
   }
 
-  // ===============================
-  // RESULT LAYOUT (Authenticated - Data dari polling)
-  // ===============================
+  // Fallback
   return (
     <AuthenticatedMode
       taskResult={taskResult}

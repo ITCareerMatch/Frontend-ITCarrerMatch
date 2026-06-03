@@ -557,7 +557,7 @@ export default function JobList() {
                     >
                       Sebelumnya
                     </button>
-                    <span className="px-3 py-1 text-slate-500 text-xs font-bold">Halaman <strong className="text-slate-900">{currentPage}</strong> dari {totalPages}</span>
+                    <span className="px-1 py-1 text-slate-500 text-xs font-bold">Halaman <strong className="text-slate-900">{currentPage}</strong> dari {totalPages}</span>
                     <button 
                       disabled={currentPage === totalPages} 
                       onClick={() => { setCurrentPage(prev => Math.min(totalPages, prev + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }} 

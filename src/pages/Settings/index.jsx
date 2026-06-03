@@ -825,29 +825,7 @@ export default function Settings() {
             )}
           </motion.div>
 
-          {/* SECTION 4: DANGER ZONE */}
-          <div className="bg-rose-500/5 rounded-3xl p-6 md:p-8 border border-rose-500/10 shadow-sm mt-8">
-            <div className="flex items-start gap-4 text-left">
-              <div className="bg-rose-500/10 p-3 rounded-2xl text-rose-600 shrink-0 border border-rose-500/10">
-                <FiAlertTriangle size={20} />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-base font-extrabold text-rose-800 uppercase tracking-wider">Zona Bahaya</h2>
-                <p className="text-xs sm:text-sm text-rose-600 mb-6 leading-relaxed font-semibold">
-                  Tindakan penghapusan ini bersifat mutlak dan permanen. Seluruh data profil diri, riwayat pindaian resume, dan pelacakan kelayakan lowongan Anda akan dieliminasi total dari sistem server.
-                </p>
-                {/* MODIFIKASI: Menggunakan SweetAlert2 Konfirmasi untuk Menghapus Akun secara Menyeluruh */}
-                <button 
-                  onClick={triggerDeleteAccount}
-                  disabled={isDeleting}
-                  className="bg-white text-rose-600 font-bold px-5 py-2.5 rounded-xl border border-rose-200 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-colors text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-sm"
-                >
-                  <FiTrash2 size={14}/> Hapus Akun Saya
-                </button>
-              </div>
-            </div>
-          </div>
-
+          
         </div>
 
         {/* ========================================== */}
@@ -978,6 +956,28 @@ export default function Settings() {
              <button onClick={() => navigate('/analisis-baru')} className="bg-white text-slate-950 font-bold px-5 py-2.5 rounded-xl text-xs uppercase tracking-wider hover:bg-slate-50 transition-colors relative z-10 flex items-center gap-1.5 shadow-md cursor-pointer">
                Mulai Analisis <FiArrowRight size={14} />
              </button>
+          </div>
+
+          {/* SECTION 4: DANGER ZONE - Pindah di bawah "Analisis CV Baru" */}
+          <div className="bg-rose-500/5 rounded-3xl p-5 border border-rose-500/10 shadow-sm">
+            <div className="flex items-start gap-3 text-left">
+              <div className="bg-rose-500/10 p-2.5 rounded-xl text-rose-600 shrink-0 border border-rose-500/10">
+                <FiAlertTriangle size={18} />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xs font-extrabold text-rose-800 uppercase tracking-wider">Zona Bahaya</h2>
+                <p className="text-[10px] text-rose-600 mb-4 leading-relaxed font-semibold">
+                  Tindakan ini bersifat permanen. Seluruh data Anda akan dihapus total.
+                </p>
+                <button
+                  onClick={triggerDeleteAccount}
+                  disabled={isDeleting}
+                  className="bg-white text-rose-600 font-bold px-4 py-2 rounded-lg border border-rose-200 hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-colors text-[10px] uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-sm sm:w-auto"
+                >
+                  <FiTrash2 size={12}/> Hapus Akun
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
