@@ -64,7 +64,7 @@ export default function CvArchive({
             <div className="flex gap-2">
               <button
                 onClick={() => onDeleteArchive(archive.id)}
-                className="p-2 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors"
+                className="p-2 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors cursor-pointer"
                 title="Hapus CV"
               >
                 <FiTrash2 size={16} />

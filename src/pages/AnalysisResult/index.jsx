@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   claimCVSession,
@@ -50,10 +50,15 @@ export default function AnalysisResult() {
 
   // Refs
   const pollingRef = useRef(null);
+  const hasInitializedRef = useRef(false);
 
-  // UI States
-  const [viewState, setViewState] = useState('loading');
-  const [taskResult, setTaskResult] = useState(null); // Data dari /cv/status/{task_id}
+  // Check for saved result synchronously on mount (before any state updates)
+  // This prevents the loading/polling flicker when navigating back
+  const initialSavedResult = useMemo(() => CVStorage.getResult(), []);
+
+  // UI States - Initialize with saved result if available to prevent loading flicker
+  const [viewState, setViewState] = useState(initialSavedResult ? 'result' : 'loading');
+  const [taskResult, setTaskResult] = useState(initialSavedResult);
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState(null);
 
@@ -63,6 +68,17 @@ export default function AnalysisResult() {
       if (pollingRef.current) clearTimeout(pollingRef.current);
     };
   }, []);
+
+  // If we have initial saved result, clear it and use it immediately
+  useEffect(() => {
+    if (initialSavedResult && !hasInitializedRef.current) {
+      hasInitializedRef.current = true;
+      console.log('[Init] Using pre-loaded saved result');
+      setTaskResult(initialSavedResult);
+      setViewState('result');
+      CVStorage.clearResult();
+    }
+  }, [initialSavedResult]);
 
   // ===============================
   // POLLING FUNCTION
@@ -88,8 +104,10 @@ export default function AnalysisResult() {
 
         if (status === 'completed') {
           setTaskResult(result?.result || null);
+          // Save result to storage for later access (e.g., when navigating back from job detail)
+          CVStorage.saveResult(result?.result || null);
+          CVStorage.clear(); // Clear session storage but keep result
           setViewState('result');
-          CVStorage.clear();
           return;
         }
 
@@ -140,19 +158,24 @@ export default function AnalysisResult() {
   // MAIN LOADING EFFECT
   // ===============================
   useEffect(() => {
+    // Skip if we already have a result (either from initial load or from polling)
+    if (taskResult) {
+      console.log('[loadData] taskResult already exists, skipping...');
+      return;
+    }
+
+    // Skip if we already initialized from saved result
+    if (hasInitializedRef.current) {
+      console.log('[loadData] Already initialized from saved result, skipping...');
+      return;
+    }
+
     const loadData = async () => {
       // Parse URL params
       const params = new URLSearchParams(location.search);
       const mode = params.get('mode');
       const taskIdParam = params.get('taskId');
       const tempTokenParam = params.get('tempToken');
-
-      // Skip jika taskResult sudah ada (artinya poll sudah selesai dipanggil)
-      // Ini mencegah double call ketika useEffect re-run setelah claimAndPoll/navigasi
-      if (taskResult) {
-        console.log('[loadData] taskResult already exists, skipping...');
-        return;
-      }
 
       // Skip jika viewState bukan 'loading' (sedang diproses)
       // Ini mencegah overwrite state saat ada proses yang sedang berjalan
@@ -222,6 +245,7 @@ export default function AnalysisResult() {
 
   const handleRetry = () => {
     CVStorage.clear();
+    CVStorage.clearResult();
     if (isLoggedIn) {
       navigate('/analisis-baru');
     } else {
@@ -272,8 +296,8 @@ export default function AnalysisResult() {
   // ===============================
   return (
     <AuthenticatedMode
-      taskResult={taskResult} // Kirim result dari polling, bukan dari storage
-      viewState={viewState} // Kirim viewState untuk check apakah sudah result
+      taskResult={taskResult}
+      viewState={viewState}
       onBackClick={handleBack}
     />
   );

@@ -5,6 +5,7 @@
  */
 
 const STORAGE_KEY = 'cv_analysis_session';
+const RESULT_KEY = 'cv_analysis_result'; // Key untuk menyimpan hasil polling
 
 /**
  * Storage structure for Guest:
@@ -120,6 +121,56 @@ export const CVStorage = {
       saved_at: Date.now()
     };
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  },
+
+  /**
+   * Save analysis result after polling completes
+   * @param {object} result - The complete analysis result from polling
+   */
+  saveResult(result) {
+    const payload = {
+      result,
+      saved_at: Date.now()
+    };
+    sessionStorage.setItem(RESULT_KEY, JSON.stringify(payload));
+  },
+
+  /**
+   * Get saved analysis result
+   * @returns {object|null} Saved result or null
+   */
+  getResult() {
+    const raw = sessionStorage.getItem(RESULT_KEY);
+    if (!raw) return null;
+
+    try {
+      const data = JSON.parse(raw);
+      // Check if result is less than 30 minutes old
+      const age = Date.now() - (data.saved_at || 0);
+      const MAX_AGE = 30 * 60 * 1000; // 30 minutes
+      if (age > MAX_AGE) {
+        sessionStorage.removeItem(RESULT_KEY);
+        return null;
+      }
+      return data.result || null;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Clear result only (keep session for navigation)
+   */
+  clearResult() {
+    sessionStorage.removeItem(RESULT_KEY);
+  },
+
+  /**
+   * Check if there's a saved result
+   * @returns {boolean}
+   */
+  hasResult() {
+    return this.getResult() !== null;
   }
 };
 

@@ -156,7 +156,7 @@ export default function AnalysisHistory() {
         <div className="flex gap-2">
           <button
             onClick={() => setActiveTab('history')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'history'
                 ? 'bg-slate-900 text-white shadow-md'
                 : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
@@ -166,7 +166,7 @@ export default function AnalysisHistory() {
           </button>
           <button
             onClick={() => setActiveTab('archives')}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTab === 'archives'
                 ? 'bg-slate-900 text-white shadow-md'
                 : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'

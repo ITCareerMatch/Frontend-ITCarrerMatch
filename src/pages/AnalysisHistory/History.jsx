@@ -130,7 +130,8 @@ export default function History({
           <motion.div
             key={item.id}
             variants={fadeInUp}
-            className="bg-white rounded-2xl border border-slate-200/60 p-6 hover:shadow-lg transition-all group"
+            className="bg-white rounded-2xl border border-slate-200/60 p-6 hover:shadow-lg transition-all group cursor-pointer"
+            onClick={() => navigate(`/dashboard/detail/${item.job_id}`)}
           >
             <div className="flex items-center justify-between gap-4">
               {/* Left side - Info */}
