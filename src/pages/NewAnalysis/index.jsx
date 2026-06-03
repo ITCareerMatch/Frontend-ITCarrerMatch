@@ -344,6 +344,18 @@ export default function NewAnalysis() {
                 <FiShield className="text-blue-500 shrink-0 mt-0.5" size={14} />
                 <p className="text-xs text-slate-600 leading-relaxed">Sertakan kata kunci keahlian yang relevan dengan posisi yang Anda incar.</p>
               </div>
+              <div className="flex items-start gap-2">
+                <FiActivity className="text-rose-500 shrink-0 mt-0.5" size={14} />
+                <p className="text-xs text-slate-600 leading-relaxed">CV harus berupa dokumen PDF murni berbasis teks, bukan hasil scan gambar maupun format JPG/PNG yang dikonversi ke PDF.</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <FiFileText className="text-purple-500 shrink-0 mt-0.5" size={14} />
+                <p className="text-xs text-slate-600 leading-relaxed">Hindari menggunakan tabel, kolom ganda, atau grafik yang dapat menghambat pembacaan teks oleh sistem.</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <FiZap className="text-amber-500 shrink-0 mt-0.5" size={14} />
+                <p className="text-xs text-slate-600 leading-relaxed">Pastikan informasi input manual berisi pengalaman kerja (paragraf), dan keahlian (dipisahkan dengan koma) tersusun dengan rapi dan jelas.</p>
+              </div>
             </div>
           </motion.div>
         </div>

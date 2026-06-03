@@ -74,6 +74,17 @@ export default function DashLayout() {
     navigate('/login');
   };
 
+  // Close sidebar when navigation changes (mobile responsive)
+  // Using requestAnimationFrame to batch state updates and avoid cascading renders
+  useEffect(() => {
+    const handleNavigation = () => {
+      requestAnimationFrame(() => {
+        setIsSidebarOpen(false);
+      });
+    };
+    handleNavigation();
+  }, [location.pathname]);
+
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: <FiHome size={18} /> },
     { path: '/editor', label: 'CV Editor', icon: <FiFileText size={18} /> },

@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiUploadCloud, FiEdit2, FiFileText, FiCheckCircle,
-  FiArrowLeft, FiZap, FiTarget, FiRefreshCw, FiShield, FiBriefcase, FiX
+  FiArrowLeft, FiZap, FiTarget, FiRefreshCw, FiShield, FiBriefcase, FiX,
+  FiActivity
 } from 'react-icons/fi';
 import { BsStars, BsLightbulbFill } from 'react-icons/bs';
 import { uploadCV } from '../../services/api';
@@ -338,8 +339,11 @@ export default function PreLoginFlow() {
             <div className="bg-white/80 backdrop-blur-md p-6 rounded-3xl border border-slate-200/60 shadow-sm">
               <h3 className="font-bold text-slate-950 text-sm mb-4 flex items-center gap-2"><BsLightbulbFill className="text-amber-400 shrink-0"/> Tips Optimalisasi</h3>
               <ul className="space-y-3 text-xs text-slate-500 font-medium">
-                <li className="flex items-start gap-2"><FiCheckCircle className="text-emerald-500 shrink-0 mt-0.5"/> <span>Pastikan CV menggunakan format dokumen yang bersih (ATS-Friendly) agar mudah diekstraksi mesin pembaca resume.</span></li>
-                <li className="flex items-start gap-2"><FiCheckCircle className="text-emerald-500 shrink-0 mt-0.5"/> <span>Gunakan kata kunci (*keywords*) yang relevan dengan spesifikasi karir digital yang Anda tuju.</span></li>
+                <li className="flex items-start gap-2"><FiCheckCircle className="text-emerald-500 shrink-0 mt-0.5"/> <span>Gunakan format PDF satu kolom agar parser teks backend AI kami bekerja optimal.</span></li>
+                <li className="flex items-start gap-2"><FiShield className="text-blue-500 shrink-0 mt-0.5"/> <span>Sertakan kata kunci keahlian yang relevan dengan posisi yang Anda incar.</span></li>
+                <li className="flex items-start gap-2"><FiActivity className="text-rose-500 shrink-0 mt-0.5"/> <span>CV harus berupa dokumen PDF murni berbasis teks, bukan hasil scan gambar maupun format JPG/PNG yang dikonversi ke PDF.</span></li>
+                <li className="flex items-start gap-2"><FiFileText className="text-purple-500 shrink-0 mt-0.5"/> <span>Hindari menggunakan tabel, kolom ganda, atau grafik yang dapat menghambat pembacaan teks oleh sistem.</span></li>
+                <li className="flex items-start gap-2"><FiZap className="text-amber-500 shrink-0 mt-0.5"/> <span>Pastikan informasi input manual berisi pengalaman kerja (paragraf), dan keahlian (dipisahkan dengan koma) tersusun dengan rapi dan jelas.</span></li>
               </ul>
             </div>
 
