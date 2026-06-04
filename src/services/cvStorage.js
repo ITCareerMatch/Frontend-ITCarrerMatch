@@ -2,10 +2,13 @@
  * CV Storage Service
  * Unified storage for CV analysis data
  * Handles both guest preview and authenticated sessions
+ *
+ * OPTIMASI: Cache hasil analysis diikat dengan taskId.
+ * Saat upload CV baru dengan taskId berbeda, cache lama tidak digunakan.
  */
 
 const STORAGE_KEY = 'cv_analysis_session';
-const RESULT_KEY = 'cv_analysis_result'; // Key untuk menyimpan hasil polling
+const RESULT_KEY = 'cv_analysis_result'; // Key untuk menyimpan hasil polling + taskId
 
 /**
  * Storage structure for Guest:
@@ -19,6 +22,13 @@ const RESULT_KEY = 'cv_analysis_result'; // Key untuk menyimpan hasil polling
  * {
  *   task_id: string,          // For polling status
  *   mode: 'authenticated',
+ *   saved_at: timestamp
+ * }
+ *
+ * Result storage structure:
+ * {
+ *   task_id: string,          // Untuk validasi cache sesuai taskId
+ *   result: object,            // Hasil analisis
  *   saved_at: timestamp
  * }
  */
@@ -126,9 +136,11 @@ export const CVStorage = {
   /**
    * Save analysis result after polling completes
    * @param {object} result - The complete analysis result from polling
+   * @param {string} taskId - Task ID untuk validasi cache
    */
-  saveResult(result) {
+  saveResult(result, taskId = null) {
     const payload = {
+      task_id: taskId,  // Simpan taskId untuk validasi
       result,
       saved_at: Date.now()
     };
@@ -136,15 +148,17 @@ export const CVStorage = {
   },
 
   /**
-   * Get saved analysis result
-   * @returns {object|null} Saved result or null
+   * Get saved analysis result dengan validasi taskId
+   * @param {string|null} currentTaskId - TaskId saat ini (dari URL)
+   * @returns {object|null} Saved result atau null jika tidak valid
    */
-  getResult() {
+  getResult(currentTaskId = null) {
     const raw = sessionStorage.getItem(RESULT_KEY);
     if (!raw) return null;
 
     try {
       const data = JSON.parse(raw);
+
       // Check if result is less than 30 minutes old
       const age = Date.now() - (data.saved_at || 0);
       const MAX_AGE = 30 * 60 * 1000; // 30 minutes
@@ -152,6 +166,15 @@ export const CVStorage = {
         sessionStorage.removeItem(RESULT_KEY);
         return null;
       }
+
+      // VALIDASI TASK ID: Jika ada taskId saat ini, cek apakah cocok
+      // Jika tidak cocok, cache tidak valid - hapus dan return null
+      if (currentTaskId && data.task_id && data.task_id !== currentTaskId) {
+        console.log(`[CVStorage] Cache miss: taskId berbeda (cache: ${data.task_id}, current: ${currentTaskId})`);
+        sessionStorage.removeItem(RESULT_KEY);
+        return null;
+      }
+
       return data.result || null;
     } catch {
       return null;
@@ -166,7 +189,7 @@ export const CVStorage = {
   },
 
   /**
-   * Check if there's a saved result
+   * Check if there's a saved result (tanpa validasi taskId)
    * @returns {boolean}
    */
   hasResult() {

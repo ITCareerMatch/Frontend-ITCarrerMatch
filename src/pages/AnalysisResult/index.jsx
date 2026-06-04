@@ -16,8 +16,8 @@ import AuthenticatedMode from './components/AuthenticatedMode';
  * AnalysisResult Page
  *
  * OPTIMASI: Hasil analisis disimpan di sessionStorage selama 30 menit.
- * Saat user kembali ke halaman (dalam 30 menit), hasil langsung ditampilkan tanpa polling.
- * Polling hanya terjadi saat pertama kali halaman dimuat atau saat upload CV baru.
+ * Cache diikat dengan taskId - jika upload CV baru dengan taskId berbeda,
+ * cache lama tidak digunakan dan polling akan berjalan normal.
  */
 
 // ===============================
@@ -42,12 +42,20 @@ export default function AnalysisResult() {
   const pollingRef = useRef(null);
   const initRef = useRef(false);
 
-  // CEK HASIL TERSIMPAN SEBELUM RENDER
-  // Jika ada hasil (belum expired 30 menit), langsung tampilkan tanpa polling
-  const savedResult = CVStorage.getResult();
+  // Parse URL params SEBELUM render
+  const params = new URLSearchParams(location.search);
+  const mode = params.get('mode');
+  const taskIdParam = params.get('taskId');
+  const tempTokenParam = params.get('tempToken');
+
+  // CEK HASIL TERSIMPAN DENGAN VALIDASI TASK ID
+  // Jika ada taskId di URL, cache lama tidak digunakan (taskId berbeda = cache invalid)
+  const savedResult = CVStorage.getResult(taskIdParam);
   const hasSavedResult = savedResult !== null;
 
-  // UI States - Jika ada saved result,langsung set ke 'result'
+  console.log('[Init] taskIdParam:', taskIdParam, '| hasSavedResult:', hasSavedResult);
+
+  // UI States
   const [viewState, setViewState] = useState(hasSavedResult ? 'result' : 'loading');
   const [taskResult, setTaskResult] = useState(savedResult);
   const [currentStep, setCurrentStep] = useState(0);
@@ -60,12 +68,11 @@ export default function AnalysisResult() {
     };
   }, []);
 
-  // MARKER: Jika ada saved result, jangan pernah poll
-  // Ini mencegah polling terjadi meskipun ada perubahan state lain
+  // MARKER: Jika ada saved result yang valid (taskId cocok), langsung gunakan
   useEffect(() => {
     if (hasSavedResult && !initRef.current) {
       initRef.current = true;
-      console.log('[Result] Using saved result (30 min cache)');
+      console.log('[Result] Using saved result - taskId validated');
       setTaskResult(savedResult);
       setViewState('result');
     }
@@ -75,9 +82,10 @@ export default function AnalysisResult() {
   // POLLING FUNCTION
   // ===============================
   const pollTask = useCallback(async (taskId) => {
-    // JANGAN POLL JIKA SUDAH PUNYA HASIL
-    if (CVStorage.getResult()) {
-      console.log('[Poll] Aborted - result already exists');
+    // JANGAN POLL JIKA SUDAH PUNYA HASIL DENGAN TASK ID YANG SAMA
+    const existingResult = CVStorage.getResult(taskId);
+    if (existingResult) {
+      console.log('[Poll] Aborted - valid result exists for taskId:', taskId);
       return;
     }
 
@@ -89,9 +97,9 @@ export default function AnalysisResult() {
 
     const poll = async () => {
       // Double-check sebelum setiap polling attempt
-      const currentSaved = CVStorage.getResult();
+      const currentSaved = CVStorage.getResult(taskId);
       if (currentSaved) {
-        console.log('[Poll] Aborted mid-poll - result appeared');
+        console.log('[Poll] Aborted mid-poll - result appeared for taskId:', taskId);
         setTaskResult(currentSaved);
         setViewState('result');
         return;
@@ -111,8 +119,8 @@ export default function AnalysisResult() {
         if (status === 'completed') {
           const finalResult = result?.result || null;
           setTaskResult(finalResult);
-          // Save result to storage
-          CVStorage.saveResult(finalResult);
+          // Save result dengan taskId untuk validasi cache berikutnya
+          CVStorage.saveResult(finalResult, taskId);
           CVStorage.clear(); // Clear session storage but keep result
           setViewState('result');
           return;
@@ -141,7 +149,7 @@ export default function AnalysisResult() {
   // ===============================
   const claimAndPoll = useCallback(async (tempToken) => {
     // JANGAN CLAIM JIKA SUDAH PUNYA HASIL
-    if (CVStorage.getResult()) {
+    if (CVStorage.getResult(taskIdParam)) {
       console.log('[Claim] Aborted - result already exists');
       return;
     }
@@ -164,22 +172,24 @@ export default function AnalysisResult() {
       setError(err.message);
       setViewState('failed');
     }
-  }, [token, pollTask]);
+  }, [token, pollTask, taskIdParam]);
 
   // ===============================
   // MAIN LOADING EFFECT
   // ===============================
   useEffect(() => {
     // ========================================
-    // BLOK UTAMA: JANGAN JALankan JIKA ADA HASIL
+    // BLOK UTAMA: JANGAN JALANKAN JIKA ADA HASIL VALID
     // ========================================
-    if (CVStorage.getResult()) {
-      console.log('[Load] Skipped - result already cached');
+    // Jika ada taskId di URL, cek apakah cache cocok
+    if (taskIdParam && CVStorage.getResult(taskIdParam)) {
+      console.log('[Load] Skipped - valid result exists for taskId:', taskIdParam);
       return;
     }
 
     // Jika sudah diinisialisasi, skip
     if (initRef.current) {
+      console.log('[Load] Already initialized, skipping...');
       return;
     }
 
@@ -187,26 +197,22 @@ export default function AnalysisResult() {
       initRef.current = true;
 
       // Double-check sebelum load
-      if (CVStorage.getResult()) {
+      if (taskIdParam && CVStorage.getResult(taskIdParam)) {
         console.log('[Load] Aborted after init check');
         return;
       }
 
-      // Parse URL params
-      const params = new URLSearchParams(location.search);
-      const mode = params.get('mode');
-      const taskIdParam = params.get('taskId');
-      const tempTokenParam = params.get('tempToken');
-
       try {
-        // FLOW C: Authenticated NewAnalysis
+        // FLOW C: Authenticated NewAnalysis - polling dengan taskId dari URL
         if (mode === 'authenticated' && taskIdParam && isLoggedIn) {
+          console.log('[Load] Starting fresh analysis - taskId:', taskIdParam);
           await pollTask(taskIdParam);
           return;
         }
 
         // FLOW B: TempToken di URL + user login
         if (tempTokenParam && isLoggedIn) {
+          console.log('[Load] Claiming session from URL');
           await claimAndPoll(tempTokenParam);
           return;
         }
@@ -216,17 +222,20 @@ export default function AnalysisResult() {
 
         // FLOW B (legacy): Guest session + user login
         if (isLoggedIn && guestSession?.temp_token) {
+          console.log('[Load] Claiming legacy guest session');
           await claimAndPoll(guestSession.temp_token);
           return;
         }
 
         // FLOW A: Guest sees locked preview
         if (tempTokenParam || guestSession?.temp_token) {
+          console.log('[Load] Showing guest locked mode');
           setViewState('guest_locked');
           return;
         }
 
         // No data found - redirect
+        console.log('[Load] No data, redirecting...');
         if (isLoggedIn) {
           navigate('/dashboard');
         } else {
@@ -248,10 +257,8 @@ export default function AnalysisResult() {
   // HANDLERS
   // ===============================
   const handleLoginClick = () => {
-    const params = new URLSearchParams(location.search);
-    const tempToken = params.get('tempToken');
-    if (tempToken) {
-      navigate(`/login?redirect=/analisis-result&tempToken=${tempToken}`);
+    if (tempTokenParam) {
+      navigate(`/login?redirect=/analisis-result&tempToken=${tempTokenParam}`);
     } else {
       navigate('/login?redirect=/analisis-result');
     }
@@ -279,7 +286,7 @@ export default function AnalysisResult() {
   // ===============================
   // RENDER STATES
   // ===============================
-  // JIKA SUDAH PUNYA HASIL, LANGSUNG TAMPILKAN
+  // JIKA SUDAH PUNYA HASIL VALID, LANGSUNG TAMPILKAN
   if (viewState === 'result' && taskResult) {
     return (
       <AuthenticatedMode
