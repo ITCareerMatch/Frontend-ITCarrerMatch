@@ -31,10 +31,14 @@ const staggerContainer = {
 
 export default function PreLoginFlow() {
   const navigate = useNavigate();
+  
+  // Pengecekan status login
+  const isLoggedIn = !!localStorage.getItem('access_token');
+
   const [activeTab, setActiveTab] = useState('upload');
   const [file, setFile] = useState(null);
   
-  // Perbaikan: State dipecah seperti di NewAnalysis
+  // State dipecah seperti di NewAnalysis
   const [pengalaman, setPengalaman] = useState('');
   const [keahlian, setKeahlian] = useState('');
 
@@ -75,12 +79,12 @@ export default function PreLoginFlow() {
       if (activeTab === 'upload') {
         apiResult = await uploadCV(file, null);
       } else {
-        // Perbaikan: Menggabungkan teks agar terstruktur untuk backend
+        // Menggabungkan teks agar terstruktur untuk backend
         const manualData = `Pengalaman Kerja:\n${pengalaman}\n\nDaftar Keahlian:\n${keahlian}`;
         apiResult = await uploadCV(null, manualData);
       }
 
-      // 👈 Simpan temp_token ke CVStorage service
+      // Simpan temp_token ke CVStorage service
       const tempToken = apiResult?.temp_token;
       if (tempToken) {
         CVStorage.saveGuestTempToken(tempToken);
@@ -121,12 +125,21 @@ export default function PreLoginFlow() {
           </span>
         </div>
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => navigate('/login')} 
-            className="bg-slate-50 text-slate-700 hover:text-slate-950 px-4.5 py-2 rounded-2xl text-xs font-bold hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200/60 shadow-sm active:scale-95"
-          >
-            Masuk
-          </button>
+          {isLoggedIn ? (
+            <button 
+              onClick={() => navigate('/dashboard')} 
+              className="bg-slate-900 text-white hover:bg-slate-800 px-4.5 py-2 rounded-2xl text-xs font-bold transition-colors cursor-pointer border border-slate-800 shadow-sm active:scale-95"
+            >
+              Ke Dashboard
+            </button>
+          ) : (
+            <button 
+              onClick={() => navigate('/login')} 
+              className="bg-slate-50 text-slate-700 hover:text-slate-950 px-4.5 py-2 rounded-2xl text-xs font-bold hover:bg-slate-100 transition-colors cursor-pointer border border-slate-200/60 shadow-sm active:scale-95"
+            >
+              Masuk
+            </button>
+          )}
         </div>
       </header>
 
@@ -236,7 +249,6 @@ export default function PreLoginFlow() {
                               <p className="font-bold text-sm text-slate-900 truncate">{file.name}</p>
                               <p className="text-[10px] text-emerald-600 font-extrabold flex items-center gap-1 mt-1 uppercase tracking-wider"><FiCheckCircle /> Siap dianalisis</p>
                             </div>
-                            {/* Tombol Silang Baru (Membatalkan file & Stop gelembung klik) */}
                             <button
                               type="button"
                               onClick={(e) => {

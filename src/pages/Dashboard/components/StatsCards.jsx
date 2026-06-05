@@ -106,7 +106,6 @@ export default function StatsCards({ profileCompleteness, jobCount, archives, on
       description: 'Jelajahi lowongan yang cocok dengan skill Anda',
       icon: <FiBriefcase size={18} />,
       accent: 'purple',
-      onClick: () => onNavigate('/lowongan'),
     },
     {
       label: 'Arsip CV',
